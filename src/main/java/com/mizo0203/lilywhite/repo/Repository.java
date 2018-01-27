@@ -2,8 +2,8 @@ package com.mizo0203.lilywhite.repo;
 
 import com.mizo0203.lilywhite.domain.Define;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
-import com.mizo0203.lilywhite.util.HttpUtil;
 
+import java.io.IOException;
 import java.util.logging.Logger;
 
 public class Repository {
@@ -22,7 +22,7 @@ public class Repository {
     mLineRepository.destroy();
   }
 
-  public void authorizeOauth(HttpUtil.Callback callback) {
+  public void authorizeOauth(AuthorizeOauthCallback callback) throws IOException {
     String client_id = getClientId();
     String redirect_uri_str = Define.REDIRECT_URI_STR;
     mLineRepository.authorizeOauth(client_id, redirect_uri_str, callback);

@@ -24,5 +24,9 @@ public class RedirectServlet extends HttpServlet {
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     PrintWriter out = resp.getWriter();
     out.println("Hello, LINE Notify World");
+    LOG.info("code:\t" + req.getParameter("code"));
+    LOG.info("stat:\t" + req.getParameter("state"));
+    LOG.info("error:\t" + req.getParameter("error"));
+    LOG.info("error_description:\t" + req.getParameter("error_description"));
   }
 }

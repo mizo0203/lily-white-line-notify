@@ -1,20 +1,23 @@
 package com.mizo0203.lilywhite.domain;
 
+import com.mizo0203.lilywhite.repo.AuthorizeOauthCallback;
 import com.mizo0203.lilywhite.repo.Repository;
-import com.mizo0203.lilywhite.util.HttpUtil;
 
-public class UseCase {
+import java.io.IOException;
+
+public class UseCase implements AutoCloseable {
   private final Repository mRepository;
 
   public UseCase() {
     mRepository = new Repository();
   }
 
-  public void destroy() {
+  @Override
+  public void close() {
     mRepository.destroy();
   }
 
-  public void authorizeOauth(HttpUtil.Callback callback) {
+  public void authorizeOauth(AuthorizeOauthCallback callback) throws IOException {
     mRepository.authorizeOauth(callback);
   }
 }

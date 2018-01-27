@@ -26,19 +26,8 @@ public class HelloServlet extends HttpServlet {
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     PrintWriter out = resp.getWriter();
     out.println("Hello, world");
-    UseCase useCase = new UseCase();
-    try {
-      useCase.authorizeOauth(
-          connection -> {
-            try {
-              LOG.info(connection.getResponseMessage());
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-            // FIXME: print
-          });
-    } finally {
-      useCase.destroy();
+    try (UseCase useCase = new UseCase()) {
+      useCase.authorizeOauth(resp::sendRedirect);
     }
   }
 }
