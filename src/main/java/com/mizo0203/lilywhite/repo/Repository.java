@@ -1,9 +1,16 @@
 package com.mizo0203.lilywhite.repo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mizo0203.lilywhite.domain.Define;
+import com.mizo0203.lilywhite.repo.line.data.AccessToken;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
+import org.apache.commons.io.IOUtils;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Repository {
@@ -22,22 +29,52 @@ public class Repository {
     mLineRepository.destroy();
   }
 
-  public void authorizeOauth(AuthorizeOauthCallback callback) throws IOException {
-    String client_id = getClientId();
+  @Nullable
+  public String buildAuthorizeOauthRedirectUrlString() {
+    String client_id = getKey("client_id");
     String redirect_uri_str = Define.REDIRECT_URI_STR;
-    mLineRepository.authorizeOauth(client_id, redirect_uri_str, callback);
+    return mLineRepository.buildAuthorizeOauthRedirectUrlString(client_id, redirect_uri_str);
   }
 
-  private String getClientId() {
-    KeyEntity keyEntity = mOfyRepository.loadKeyEntity("ClientId");
+  public void tokenOauth(String code) {
+    String client_id = getKey("client_id");
+    String client_secret = getKey("client_secret");
+    mLineRepository.tokenOauth(code, client_id, client_secret, this::onResponseTokenOauth);
+  }
+
+  private void onResponseTokenOauth(HttpURLConnection connection) {
+    try {
+      if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        return;
+      }
+      String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+      AccessToken access_token = new ObjectMapper().readValue(body, AccessToken.class);
+      setKey("access_token", access_token.getAccessToken());
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "", e);
+    }
+  }
+
+  private void setKey(String key, String value) {
+    KeyEntity keyEntity = mOfyRepository.loadKeyEntity(key);
     if (keyEntity == null) {
       keyEntity = new KeyEntity();
-      keyEntity.key = "ClientId";
+      keyEntity.key = key;
+    }
+    keyEntity.value = value;
+    mOfyRepository.saveKeyEntity(keyEntity);
+  }
+
+  private String getKey(String key) {
+    KeyEntity keyEntity = mOfyRepository.loadKeyEntity(key);
+    if (keyEntity == null) {
+      keyEntity = new KeyEntity();
+      keyEntity.key = key;
       keyEntity.value = "";
       mOfyRepository.saveKeyEntity(keyEntity);
     }
     if (keyEntity.value.isEmpty()) {
-      LOG.severe("ClientId isEmpty");
+      LOG.severe(key + " isEmpty");
     }
     return keyEntity.value;
   }

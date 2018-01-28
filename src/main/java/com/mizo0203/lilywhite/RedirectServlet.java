@@ -9,6 +9,8 @@
 
 package com.mizo0203.lilywhite;
 
+import com.mizo0203.lilywhite.domain.UseCase;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,5 +30,8 @@ public class RedirectServlet extends HttpServlet {
     LOG.info("stat:\t" + req.getParameter("state"));
     LOG.info("error:\t" + req.getParameter("error"));
     LOG.info("error_description:\t" + req.getParameter("error_description"));
+    try (UseCase useCase = new UseCase()) {
+      useCase.tokenOauth(req.getParameter("code"));
+    }
   }
 }

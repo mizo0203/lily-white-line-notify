@@ -1,9 +1,10 @@
 package com.mizo0203.lilywhite.util;
 
-import java.io.BufferedWriter;
+import org.apache.http.client.utils.URIBuilder;
+
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -25,11 +26,10 @@ public class HttpUtil {
       for (String key : reqProp.keySet()) {
         connection.setRequestProperty(key, reqProp.get(key));
       }
-      BufferedWriter writer =
-          new BufferedWriter(
-              new OutputStreamWriter(connection.getOutputStream(), StandardCharsets.UTF_8));
-      writer.write(body);
-      writer.flush();
+      connection.setRequestProperty(
+          "Content-Length", String.valueOf(body.getBytes(StandardCharsets.UTF_8).length));
+      connection.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
+      connection.getOutputStream().flush();
       LOG.info("getResponseCode():    " + connection.getResponseCode());
       LOG.info("getResponseMessage(): " + connection.getResponseMessage());
       if (connection.getErrorStream() != null) {
@@ -45,6 +45,11 @@ public class HttpUtil {
         connection.disconnect();
       }
     }
+  }
+
+  public static void post(
+      URL url, Map<String, String> reqProp, Map<String, String> params, Callback callback) {
+    post(url, reqProp, createBody(params), callback);
   }
 
   public static void get(URL url, Map<String, String> reqProp, Callback callback) {
@@ -71,6 +76,22 @@ public class HttpUtil {
       if (connection != null) {
         connection.disconnect();
       }
+    }
+  }
+
+  private static String createBody(Map<String, String> params) {
+    try {
+      URIBuilder builder = new URIBuilder();
+      for (String name : params.keySet()) {
+        builder.addParameter(name, params.get(name));
+      }
+      LOG.info("getQuery():\t" + builder.build().getQuery());
+      LOG.info("getRawQuery():\t" + builder.build().getRawQuery());
+      LOG.info("toString():\t" + builder.build().toString());
+      return builder.build().getQuery();
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+      return null;
     }
   }
 
