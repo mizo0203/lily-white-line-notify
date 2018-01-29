@@ -2,6 +2,7 @@ package com.mizo0203.lilywhite.domain;
 
 import com.mizo0203.lilywhite.repo.Repository;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
@@ -23,6 +24,10 @@ public class UseCase implements AutoCloseable {
 
   public void tokenOauth(String code) {
     mRepository.tokenOauth(code);
+  }
+
+  public void notify(@Nonnull String message) {
+    mRepository.notify(message);
   }
 
   public interface AuthorizeOauthCallback {
