@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mizo0203.lilywhite.domain.Define;
 import com.mizo0203.lilywhite.repo.line.data.AccessToken;
 import com.mizo0203.lilywhite.repo.line.data.ResponseNotifyData;
+import com.mizo0203.lilywhite.repo.line.data.ResponseStatusData;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import org.apache.commons.io.IOUtils;
 
@@ -72,6 +73,28 @@ public class Repository {
       ResponseNotifyData responseNotifyData =
           new ObjectMapper().readValue(body, ResponseNotifyData.class);
       LOG.info("responseNotifyData: " + responseNotifyData.getMessage());
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "", e);
+    }
+  }
+
+  public void status() {
+    String access_token = getKey("access_token");
+    mLineRepository.status(access_token, this::onResponseStatus);
+  }
+
+  private void onResponseStatus(HttpURLConnection connection) {
+    try {
+      if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        return;
+      }
+      String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+      ResponseStatusData responseStatusData =
+          new ObjectMapper().readValue(body, ResponseStatusData.class);
+      LOG.info("responseStatusData.getStatus(): " + responseStatusData.getStatus());
+      LOG.info("responseStatusData.getMessage(): " + responseStatusData.getMessage());
+      LOG.info("responseStatusData.getTargetType(): " + responseStatusData.getTargetType());
+      LOG.info("responseStatusData.getTarget(): " + responseStatusData.getTarget());
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "", e);
     }

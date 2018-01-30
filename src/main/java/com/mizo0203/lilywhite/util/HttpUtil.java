@@ -2,6 +2,7 @@ package com.mizo0203.lilywhite.util;
 
 import org.apache.http.client.utils.URIBuilder;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
@@ -14,7 +15,8 @@ public class HttpUtil {
 
   private static final Logger LOG = Logger.getLogger(HttpUtil.class.getName());
 
-  public static void post(URL url, Map<String, String> reqProp, String body, Callback callback) {
+  public static void post(
+      URL url, Map<String, String> reqProp, @Nonnull String body, Callback callback) {
     LOG.info("post url:     " + url);
     LOG.info("post reqProp: " + reqProp);
     LOG.info("post body:    " + body);
@@ -79,6 +81,7 @@ public class HttpUtil {
     }
   }
 
+  @Nonnull
   private static String createBody(Map<String, String> params) {
     try {
       URIBuilder builder = new URIBuilder();
@@ -88,10 +91,11 @@ public class HttpUtil {
       LOG.info("getQuery():\t" + builder.build().getQuery());
       LOG.info("getRawQuery():\t" + builder.build().getRawQuery());
       LOG.info("toString():\t" + builder.build().toString());
-      return builder.build().getQuery();
+      String query = builder.build().getQuery();
+      return query != null ? query : "";
     } catch (URISyntaxException e) {
       e.printStackTrace();
-      return null;
+      return "";
     }
   }
 

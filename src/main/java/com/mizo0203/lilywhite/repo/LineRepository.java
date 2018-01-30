@@ -23,6 +23,8 @@ import java.util.logging.Logger;
       "https://notify-bot.line.me/oauth/token";
   private static final String LINE_NOTIFY_API_NOTIFY_URL_STR =
       "https://notify-api.line.me/api/notify";
+  private static final String LINE_NOTIFY_API_STATUS_URL_STR =
+      "https://notify-api.line.me/api/status";
 
   @SuppressWarnings("EmptyMethod")
   public void destroy() {
@@ -89,6 +91,17 @@ import java.util.logging.Logger;
 
     try {
       HttpUtil.post(new URL(LINE_NOTIFY_API_NOTIFY_URL_STR), reqProp, params, callback);
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void status(@Nonnull String access_token, @Nullable HttpUtil.Callback callback) {
+    Map<String, String> reqProp = new HashMap<>();
+    reqProp.put("Authorization", "Bearer " + access_token);
+
+    try {
+      HttpUtil.get(new URL(LINE_NOTIFY_API_STATUS_URL_STR), reqProp, callback);
     } catch (MalformedURLException e) {
       e.printStackTrace();
     }
