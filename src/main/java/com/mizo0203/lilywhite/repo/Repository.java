@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mizo0203.lilywhite.domain.Define;
 import com.mizo0203.lilywhite.repo.line.data.AccessToken;
 import com.mizo0203.lilywhite.repo.line.data.ResponseNotifyData;
+import com.mizo0203.lilywhite.repo.line.data.ResponseRevokeData;
 import com.mizo0203.lilywhite.repo.line.data.ResponseStatusData;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import org.apache.commons.io.IOUtils;
@@ -100,6 +101,27 @@ public class Repository {
     }
   }
 
+  public void revoke() {
+    String access_token = getKey("access_token");
+    mLineRepository.revoke(access_token, this::onResponseRevoke);
+  }
+
+  private void onResponseRevoke(HttpURLConnection connection) {
+    try {
+      if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+        return;
+      }
+      String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+      ResponseRevokeData responseRevokeData =
+          new ObjectMapper().readValue(body, ResponseRevokeData.class);
+      LOG.info("responseRevokeData.getStatus(): " + responseRevokeData.getStatus());
+      LOG.info("responseRevokeData.getMessage(): " + responseRevokeData.getMessage());
+      deleteKey("access_token");
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "", e);
+    }
+  }
+
   private void setKey(String key, String value) {
     KeyEntity keyEntity = mOfyRepository.loadKeyEntity(key);
     if (keyEntity == null) {
@@ -122,5 +144,9 @@ public class Repository {
       LOG.severe(key + " isEmpty");
     }
     return keyEntity.value;
+  }
+
+  private void deleteKey(String key) {
+    mOfyRepository.deleteKeyEntity(key);
   }
 }

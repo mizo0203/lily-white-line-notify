@@ -34,6 +34,10 @@ public class UseCase implements AutoCloseable {
     mRepository.status();
   }
 
+  public void revoke() {
+    mRepository.revoke();
+  }
+
   public interface AuthorizeOauthCallback {
     void onBuildRedirectUrlString(@Nullable String redirectUrlString) throws IOException;
   }

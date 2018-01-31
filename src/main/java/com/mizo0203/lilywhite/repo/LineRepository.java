@@ -25,6 +25,8 @@ import java.util.logging.Logger;
       "https://notify-api.line.me/api/notify";
   private static final String LINE_NOTIFY_API_STATUS_URL_STR =
       "https://notify-api.line.me/api/status";
+  private static final String LINE_NOTIFY_API_REVOKE_URL_STR =
+      "https://notify-api.line.me/api/revoke";
 
   @SuppressWarnings("EmptyMethod")
   public void destroy() {
@@ -102,6 +104,18 @@ import java.util.logging.Logger;
 
     try {
       HttpUtil.get(new URL(LINE_NOTIFY_API_STATUS_URL_STR), reqProp, callback);
+    } catch (MalformedURLException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void revoke(@Nonnull String access_token, @Nullable HttpUtil.Callback callback) {
+    Map<String, String> reqProp = new HashMap<>();
+    reqProp.put("Content-Type", "application/x-www-form-urlencoded");
+    reqProp.put("Authorization", "Bearer " + access_token);
+
+    try {
+      HttpUtil.post(new URL(LINE_NOTIFY_API_REVOKE_URL_STR), reqProp, new HashMap<>(), callback);
     } catch (MalformedURLException e) {
       e.printStackTrace();
     }

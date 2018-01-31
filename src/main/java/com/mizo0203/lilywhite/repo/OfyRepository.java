@@ -17,4 +17,8 @@ import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
   public void saveKeyEntity(KeyEntity entity) {
     ObjectifyService.ofy().save().entity(entity).now();
   }
+
+  public void deleteKeyEntity(String key) {
+    ObjectifyService.ofy().delete().type(KeyEntity.class).id(key).now();
+  }
 }

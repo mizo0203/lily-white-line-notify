@@ -34,6 +34,7 @@ public class RedirectServlet extends HttpServlet {
       useCase.tokenOauth(req.getParameter("code"));
       useCase.notify("Hello, LINE Notify World");
       useCase.status();
+      useCase.revoke();
     }
   }
 }
