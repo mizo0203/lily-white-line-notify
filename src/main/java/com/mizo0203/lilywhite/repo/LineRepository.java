@@ -1,14 +1,18 @@
 package com.mizo0203.lilywhite.repo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mizo0203.lilywhite.domain.Define;
+import com.mizo0203.lilywhite.repo.line.data.*;
 import com.mizo0203.lilywhite.util.HttpUtil;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.IOException;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -52,7 +56,10 @@ import java.util.logging.Logger;
   }
 
   public void tokenOauth(
-      String code, String client_id, String client_secret, HttpUtil.Callback callback) {
+      String code,
+      String client_id,
+      String client_secret,
+      @Nonnull Callback<AccessToken> callback) {
     Map<String, String> reqProp = new HashMap<>();
     reqProp.put("Content-Type", "application/x-www-form-urlencoded");
 
@@ -64,9 +71,27 @@ import java.util.logging.Logger;
     params.put("client_secret", client_secret);
 
     try {
-      HttpUtil.post(new URL(LINE_NOTIFY_API_TOKEN_OAUTH_URL_STR), reqProp, params, callback);
+      HttpUtil.post(
+          new URL(LINE_NOTIFY_API_TOKEN_OAUTH_URL_STR),
+          reqProp,
+          params,
+          connection -> {
+            try {
+              if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                callback.response(null, null);
+                return;
+              }
+              String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+              AccessToken accessToken = new ObjectMapper().readValue(body, AccessToken.class);
+              callback.response(null, accessToken);
+            } catch (IOException e) {
+              LOG.log(Level.SEVERE, "", e);
+              callback.response(null, null);
+            }
+          });
     } catch (MalformedURLException e) {
-      e.printStackTrace();
+      LOG.log(Level.SEVERE, "", e);
+      callback.response(null, null);
     }
   }
 
@@ -78,7 +103,7 @@ import java.util.logging.Logger;
       @Nullable String imageFile,
       @Nullable Number stickerPackageId,
       @Nullable Number stickerId,
-      @Nullable HttpUtil.Callback callback) {
+      @Nonnull Callback<ResponseNotifyData> callback) {
     Map<String, String> reqProp = new HashMap<>();
     reqProp.put("Content-Type", "application/x-www-form-urlencoded");
     reqProp.put("Authorization", "Bearer " + access_token);
@@ -92,32 +117,117 @@ import java.util.logging.Logger;
     params.put("stickerId", stickerId != null ? stickerId.toString() : null);
 
     try {
-      HttpUtil.post(new URL(LINE_NOTIFY_API_NOTIFY_URL_STR), reqProp, params, callback);
+      HttpUtil.post(
+          new URL(LINE_NOTIFY_API_NOTIFY_URL_STR),
+          reqProp,
+          params,
+          connection -> {
+            ResponseApiRateLimit apiRateLimit = parseResponseApiRateLimit(connection);
+            try {
+              if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                callback.response(apiRateLimit, null);
+                return;
+              }
+              String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+              ResponseNotifyData responseNotifyData =
+                  new ObjectMapper().readValue(body, ResponseNotifyData.class);
+              LOG.info("responseNotifyData.getStatus(): " + responseNotifyData.getStatus());
+              LOG.info("responseNotifyData.getMessage(): " + responseNotifyData.getMessage());
+              callback.response(apiRateLimit, responseNotifyData);
+            } catch (IOException e) {
+              LOG.log(Level.SEVERE, "", e);
+              callback.response(apiRateLimit, null);
+            }
+          });
     } catch (MalformedURLException e) {
-      e.printStackTrace();
+      LOG.log(Level.SEVERE, "", e);
+      callback.response(null, null);
     }
   }
 
-  public void status(@Nonnull String access_token, @Nullable HttpUtil.Callback callback) {
+  public void status(@Nonnull String access_token, @Nonnull Callback<ResponseStatusData> callback) {
     Map<String, String> reqProp = new HashMap<>();
     reqProp.put("Authorization", "Bearer " + access_token);
 
     try {
-      HttpUtil.get(new URL(LINE_NOTIFY_API_STATUS_URL_STR), reqProp, callback);
+      HttpUtil.get(
+          new URL(LINE_NOTIFY_API_STATUS_URL_STR),
+          reqProp,
+          connection -> {
+            ResponseApiRateLimit apiRateLimit = parseResponseApiRateLimit(connection);
+            try {
+              if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                callback.response(apiRateLimit, null);
+                return;
+              }
+              String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+              ResponseStatusData responseStatusData =
+                  new ObjectMapper().readValue(body, ResponseStatusData.class);
+              LOG.info("responseStatusData.getStatus(): " + responseStatusData.getStatus());
+              LOG.info("responseStatusData.getMessage(): " + responseStatusData.getMessage());
+              LOG.info("responseStatusData.getTargetType(): " + responseStatusData.getTargetType());
+              LOG.info("responseStatusData.getTarget(): " + responseStatusData.getTarget());
+              callback.response(apiRateLimit, responseStatusData);
+            } catch (IOException e) {
+              LOG.log(Level.SEVERE, "", e);
+              callback.response(apiRateLimit, null);
+            }
+          });
     } catch (MalformedURLException e) {
-      e.printStackTrace();
+      LOG.log(Level.SEVERE, "", e);
+      callback.response(null, null);
     }
   }
 
-  public void revoke(@Nonnull String access_token, @Nullable HttpUtil.Callback callback) {
+  public void revoke(@Nonnull String access_token, @Nonnull Callback<ResponseRevokeData> callback) {
     Map<String, String> reqProp = new HashMap<>();
     reqProp.put("Content-Type", "application/x-www-form-urlencoded");
     reqProp.put("Authorization", "Bearer " + access_token);
 
     try {
-      HttpUtil.post(new URL(LINE_NOTIFY_API_REVOKE_URL_STR), reqProp, new HashMap<>(), callback);
+      HttpUtil.post(
+          new URL(LINE_NOTIFY_API_REVOKE_URL_STR),
+          reqProp,
+          new HashMap<>(),
+          connection -> {
+            try {
+              if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                callback.response(null, null);
+                return;
+              }
+              String body = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+              ResponseRevokeData responseRevokeData =
+                  new ObjectMapper().readValue(body, ResponseRevokeData.class);
+              LOG.info("responseRevokeData.getStatus(): " + responseRevokeData.getStatus());
+              LOG.info("responseRevokeData.getMessage(): " + responseRevokeData.getMessage());
+              callback.response(null, responseRevokeData);
+            } catch (IOException e) {
+              LOG.log(Level.SEVERE, "", e);
+              callback.response(null, null);
+            }
+          });
     } catch (MalformedURLException e) {
-      e.printStackTrace();
+      LOG.log(Level.SEVERE, "", e);
+      callback.response(null, null);
     }
+  }
+
+  private ResponseApiRateLimit parseResponseApiRateLimit(URLConnection connection) {
+    int limit = Integer.parseInt(connection.getHeaderField("X-RateLimit-Limit"));
+    int remaining = Integer.parseInt(connection.getHeaderField("X-RateLimit-Remaining"));
+    int imageLimit = Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageLimit"));
+    int imageRemaining = Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageRemaining"));
+    Date reset = new Date(Long.parseLong(connection.getHeaderField("X-RateLimit-Reset")));
+    LOG.info("X-RateLimit-Limit:          " + limit);
+    LOG.info("X-RateLimit-Remaining:      " + remaining);
+    LOG.info("X-RateLimit-ImageLimit:     " + imageLimit);
+    LOG.info("X-RateLimit-ImageRemaining: " + imageRemaining);
+    LOG.info("X-RateLimit-Reset:          " + reset);
+    return new ResponseApiRateLimit(limit, remaining, imageLimit, imageRemaining, reset);
+  }
+
+  public interface Callback<T> {
+
+    void response(@Nullable ResponseApiRateLimit apiRateLimit, @Nullable T res);
   }
 }
