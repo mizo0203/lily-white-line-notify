@@ -71,6 +71,15 @@ public class HttpUtil {
       }
       if (callback != null) {
         callback.response(connection);
+        LOG.info("X-RateLimit-Limit:          " + connection.getHeaderField("X-RateLimit-Limit"));
+        LOG.info(
+            "X-RateLimit-Remaining:      " + connection.getHeaderField("X-RateLimit-Remaining"));
+        LOG.info(
+            "X-RateLimit-ImageLimit:     " + connection.getHeaderField("X-RateLimit-ImageLimit"));
+        LOG.info(
+            "X-RateLimit-ImageRemaining: "
+                + connection.getHeaderField("X-RateLimit-ImageRemaining"));
+        LOG.info("X-RateLimit-Reset:          " + connection.getHeaderField("X-RateLimit-Reset"));
       }
     } catch (IOException e) {
       e.printStackTrace();
