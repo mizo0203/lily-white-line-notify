@@ -9,7 +9,7 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>hello</servlet-name>
-        <url-pattern>/</url-pattern>
+        <url-pattern>/hello</url-pattern>
     </servlet-mapping>
     <servlet>
         <servlet-name>RedirectServlet</servlet-name>
@@ -19,6 +19,10 @@
         <servlet-name>RedirectServlet</servlet-name>
         <url-pattern>/redirect</url-pattern>
     </servlet-mapping>
+
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
 
     <filter>
         <filter-name>ObjectifyFilter</filter-name>
