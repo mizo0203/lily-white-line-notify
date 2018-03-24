@@ -8,9 +8,11 @@ import java.io.IOException;
 
 public class UseCase implements AutoCloseable {
   private final Repository mRepository;
+  private final Translator mTranslator;
 
   public UseCase() {
     mRepository = new Repository();
+    mTranslator = new Translator();
   }
 
   @Override
@@ -36,6 +38,14 @@ public class UseCase implements AutoCloseable {
 
   public void revoke() {
     mRepository.revoke();
+  }
+
+  public void setReminderMessage(String sourceId, String reminderMessage) {
+    mRepository.setReminderMessage(sourceId, reminderMessage);
+  }
+
+  public void enqueueReminderTask(String source_id, String date, String time) {
+    mRepository.enqueueReminderTask(source_id, mTranslator.parseFormDatetime(date, time).getTime());
   }
 
   public interface AuthorizeOauthCallback {

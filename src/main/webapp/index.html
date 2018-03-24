@@ -7,12 +7,17 @@
 </head>
 <body>
 <h1>リマインダー LINE Notify リリーホワイト</h1>
-<form>
+<form action="/line_hook" method="post">
     <h3>リマインダー日時</h3>
-    <input type="datetime-local"/>
+    <input type="date" name="date">
+    <input type="time" name="time">
 
     <h3>リマインダーメッセージ</h3>
-    <input type="text"/>
+    <input type="text" name="text"/>
+
+    <p>
+        <input type="submit" value="送信"><input type="reset" value="リセット">
+    </p>
 </form>
 </body>
 </html>

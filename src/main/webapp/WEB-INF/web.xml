@@ -19,6 +19,37 @@
         <servlet-name>RedirectServlet</servlet-name>
         <url-pattern>/redirect</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>line_hook</servlet-name>
+        <servlet-class>com.mizo0203.lilywhite.LilyWhiteLineBotServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>line_hook</servlet-name>
+        <url-pattern>/line_hook</url-pattern>
+    </servlet-mapping>
+
+    <!-- [START Push Task] -->
+    <!-- https://cloud.google.com/appengine/docs/standard/java/taskqueue/push/ -->
+    <servlet>
+        <servlet-name>reminder_task</servlet-name>
+        <servlet-class>com.mizo0203.lilywhite.push_task.ReminderTaskServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>reminder_task</servlet-name>
+        <url-pattern>/push_task/reminder_task</url-pattern>
+    </servlet-mapping>
+
+    <!-- https://cloud.google.com/appengine/docs/standard/java/config/cron#securing_urls_for_cron -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>push_task</web-resource-name>
+            <url-pattern>/push_task/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>admin</role-name>
+        </auth-constraint>
+    </security-constraint>
+    <!-- [END Push Task] -->
 
     <welcome-file-list>
         <welcome-file>index.html</welcome-file>

@@ -32,9 +32,9 @@ public class RedirectServlet extends HttpServlet {
     LOG.info("error_description:\t" + req.getParameter("error_description"));
     try (UseCase useCase = new UseCase()) {
       useCase.tokenOauth(req.getParameter("code"));
-      useCase.notify("Hello, LINE Notify World");
-      useCase.status();
-      useCase.revoke();
+      //      useCase.notify("Hello, LINE Notify World");
+      //      useCase.status();
+      //      useCase.revoke();
     }
   }
 }

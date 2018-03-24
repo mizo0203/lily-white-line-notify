@@ -2,6 +2,7 @@ package com.mizo0203.lilywhite.repo;
 
 import com.mizo0203.lilywhite.domain.Define;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
+import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -12,15 +13,18 @@ public class Repository {
   private static final Logger LOG = Logger.getLogger(Repository.class.getName());
   private final OfyRepository mOfyRepository;
   private final LineRepository mLineRepository;
+  private final PushQueueRepository mPushQueueRepository;
 
   public Repository() {
     mOfyRepository = new OfyRepository();
     mLineRepository = new LineRepository();
+    mPushQueueRepository = new PushQueueRepository();
   }
 
   public void destroy() {
     mOfyRepository.destroy();
     mLineRepository.destroy();
+    mPushQueueRepository.destroy();
   }
 
   @Nullable
@@ -118,5 +122,38 @@ public class Repository {
 
   private void deleteKey(String key) {
     mOfyRepository.deleteKeyEntity(key);
+  }
+
+  public void setReminderMessage(String sourceId, String reminderMessage) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+    config.setReminderMessage(reminderMessage);
+    mOfyRepository.saveLineTalkRoomConfig(config);
+  }
+
+  public void enqueueReminderTask(String sourceId, long etaMillis) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+    String taskName =
+        mPushQueueRepository.enqueueReminderTask(
+            config.getSourceId(), etaMillis, config.getReminderMessage());
+    LOG.info("enqueueReminderTask taskName: " + taskName);
+    config.setReminderEnqueuedTaskName(taskName);
+    mOfyRepository.saveLineTalkRoomConfig(config);
+  }
+
+  private void deleteReminderTask(LineTalkRoomConfig config) {
+    String taskName = config.getReminderEnqueuedTaskName();
+    if (taskName == null || taskName.isEmpty()) {
+      return;
+    }
+    mPushQueueRepository.deleteReminderTask(taskName);
+    config.setReminderEnqueuedTaskName(null);
+  }
+
+  private LineTalkRoomConfig getOrCreateLineTalkRoomConfig(String sourceId) {
+    LineTalkRoomConfig config = mOfyRepository.loadLineTalkRoomConfig(sourceId);
+    if (config == null) {
+      config = new LineTalkRoomConfig(sourceId);
+    }
+    return config;
   }
 }
