@@ -16,6 +16,7 @@ import com.linecorp.bot.model.message.template.Template;
 import com.mizo0203.lilywhite.repo.OfyRepository;
 import com.mizo0203.lilywhite.repo.ReminderState;
 import com.mizo0203.lilywhite.repo.Repository;
+import com.mizo0203.lilywhite.repo.line.data.ResponseStatusData;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
@@ -100,7 +101,7 @@ public class ReminderUseCase implements AutoCloseable {
     mRepository.replyMessage(event.getReplyToken(), createMessageToRequestAccessToken());
   }
 
-  private void onResponseCompleteAccessToken(PostbackEvent event) {
+  private void onResponseCompleteAccessToken(final PostbackEvent event) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
         // NOP
@@ -109,7 +110,7 @@ public class ReminderUseCase implements AutoCloseable {
         mRepository.replyMessage(event.getReplyToken(), createMessageToRequestAccessToken());
         break;
       case HAS_ACCESS_TOKEN:
-        mRepository.replyMessage(event.getReplyToken(), createMessageToRequestReminderDate());
+        mRepository.status(mReminder, createStatusCallback(event));
         break;
       case REMINDER_ENQUEUED:
       case REMINDER_CANCELLATION_CONFIRM:
@@ -117,6 +118,19 @@ public class ReminderUseCase implements AutoCloseable {
         // NOP
         break;
     }
+  }
+
+  private Repository.Callback<ResponseStatusData> createStatusCallback(final PostbackEvent event) {
+    return (apiRateLimit, res) -> {
+      if (res != null && res.getTarget() != null) {
+        mRepository.replyMessage(
+                event.getReplyToken(), createMessageToRequestReminderDate());
+      } else {
+        mReminder.setAccessToken(null);
+        mRepository.replyMessage(
+                event.getReplyToken(), createMessageToRequestAccessToken());
+      }
+    };
   }
 
   private Message createMessageToRequestAccessToken() {
