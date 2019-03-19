@@ -25,8 +25,9 @@ public class LineTalkRoomConfig {
   private String reminderEnqueuedTaskName;
   private boolean cancellationConfirm;
   private String accessToken;
+  private String nickname;
 
-  public LineTalkRoomConfig() {
+  private LineTalkRoomConfig() {
     // LineTalkRoomConfig must have a no-arg constructor
     reminderMessage = null;
     reminderEnqueuedTaskName = null;
@@ -37,6 +38,14 @@ public class LineTalkRoomConfig {
   public LineTalkRoomConfig(String sourceId) {
     this();
     this.sourceId = sourceId;
+  }
+
+  public String getNickname() {
+    return nickname;
+  }
+
+  public void setNickname(String nickname) {
+    this.nickname = nickname;
   }
 
   public String getSourceId() {

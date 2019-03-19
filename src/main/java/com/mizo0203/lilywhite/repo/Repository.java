@@ -28,7 +28,6 @@ public class Repository {
   }
 
   public void destroy() {
-    mOfyRepository.destroy();
     mLineRepository.destroy();
     mPushQueueRepository.destroy();
   }
@@ -172,19 +171,6 @@ public class Repository {
     Channel channel = Objects.requireNonNull(mOfyRepository.loadChannel(id));
     mLineMessagingClient = LineMessagingClient.builder(channel.getToken()).build();
     return channel;
-  }
-
-  public State getState(String sourceId) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
-    if (config.isCancellationConfirm()) {
-      return State.REMINDER_CANCELLATION_CONFIRM;
-    } else if (config.isReminderEnqueued()) {
-      return State.REMINDER_ENQUEUED;
-    } else if (config.getReminderMessage() != null) {
-      return State.HAS_REMINDER_MESSAGE;
-    } else {
-      return State.NO_REMINDER_MESSAGE;
-    }
   }
 
   public void clearEvent(String sourceId) {
