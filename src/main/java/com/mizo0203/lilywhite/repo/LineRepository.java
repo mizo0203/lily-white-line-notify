@@ -38,14 +38,15 @@ import java.util.logging.Logger;
   }
 
   @Nullable
-  public String buildAuthorizeOauthRedirectUrlString(String client_id, String redirect_uri_str) {
+  public String buildAuthorizeOauthRedirectUrlString(
+      String client_id, String redirect_uri_str, String state) {
     try {
       return new URIBuilder(LINE_NOTIFY_API_AUTHORIZE_OAUTH_URL_STR)
           .setParameter("response_type", "code")
           .setParameter("client_id", client_id)
           .setParameter("redirect_uri", redirect_uri_str)
           .setParameter("scope", "notify")
-          .setParameter("state", "state") // FIXME: ユーザのセッションIDから生成されるハッシュ値などを指定
+          .setParameter("state", state) // FIXME: ユーザのセッションIDから生成されるハッシュ値などを指定
           .setParameter("response_mode", "form_post")
           .build()
           .toString();
@@ -213,17 +214,23 @@ import java.util.logging.Logger;
   }
 
   private ResponseApiRateLimit parseResponseApiRateLimit(URLConnection connection) {
-    int limit = Integer.parseInt(connection.getHeaderField("X-RateLimit-Limit"));
-    int remaining = Integer.parseInt(connection.getHeaderField("X-RateLimit-Remaining"));
-    int imageLimit = Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageLimit"));
-    int imageRemaining = Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageRemaining"));
-    Date reset = new Date(Long.parseLong(connection.getHeaderField("X-RateLimit-Reset")));
-    LOG.info("X-RateLimit-Limit:          " + limit);
-    LOG.info("X-RateLimit-Remaining:      " + remaining);
-    LOG.info("X-RateLimit-ImageLimit:     " + imageLimit);
-    LOG.info("X-RateLimit-ImageRemaining: " + imageRemaining);
-    LOG.info("X-RateLimit-Reset:          " + reset);
-    return new ResponseApiRateLimit(limit, remaining, imageLimit, imageRemaining, reset);
+    try {
+      int limit = Integer.parseInt(connection.getHeaderField("X-RateLimit-Limit"));
+      int remaining = Integer.parseInt(connection.getHeaderField("X-RateLimit-Remaining"));
+      int imageLimit = Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageLimit"));
+      int imageRemaining =
+          Integer.parseInt(connection.getHeaderField("X-RateLimit-ImageRemaining"));
+      Date reset = new Date(Long.parseLong(connection.getHeaderField("X-RateLimit-Reset")));
+      LOG.info("X-RateLimit-Limit:          " + limit);
+      LOG.info("X-RateLimit-Remaining:      " + remaining);
+      LOG.info("X-RateLimit-ImageLimit:     " + imageLimit);
+      LOG.info("X-RateLimit-ImageRemaining: " + imageRemaining);
+      LOG.info("X-RateLimit-Reset:          " + reset);
+      return new ResponseApiRateLimit(limit, remaining, imageLimit, imageRemaining, reset);
+    } catch (NumberFormatException e) {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   public interface Callback<T> {

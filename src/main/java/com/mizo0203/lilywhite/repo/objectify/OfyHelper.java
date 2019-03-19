@@ -1,6 +1,7 @@
 package com.mizo0203.lilywhite.repo.objectify;
 
 import com.googlecode.objectify.ObjectifyService;
+import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
@@ -20,6 +21,7 @@ public class OfyHelper implements ServletContextListener {
     // request.
     ObjectifyService.register(KeyEntity.class);
     ObjectifyService.register(LineTalkRoomConfig.class);
+    ObjectifyService.register(Channel.class);
   }
 
   @Override

@@ -1,11 +1,16 @@
 package com.mizo0203.lilywhite.repo;
 
+import com.linecorp.bot.model.ReplyMessage;
+import com.linecorp.bot.model.message.Message;
 import com.mizo0203.lilywhite.domain.Define;
+import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 public class Repository {
@@ -14,6 +19,7 @@ public class Repository {
   private final OfyRepository mOfyRepository;
   private final LineRepository mLineRepository;
   private final PushQueueRepository mPushQueueRepository;
+  private LineMessagingClient mLineMessagingClient;
 
   public Repository() {
     mOfyRepository = new OfyRepository();
@@ -28,13 +34,13 @@ public class Repository {
   }
 
   @Nullable
-  public String buildAuthorizeOauthRedirectUrlString() {
+  public String buildAuthorizeOauthRedirectUrlString(String state) {
     String client_id = getKey("client_id");
     String redirect_uri_str = Define.REDIRECT_URI_STR;
-    return mLineRepository.buildAuthorizeOauthRedirectUrlString(client_id, redirect_uri_str);
+    return mLineRepository.buildAuthorizeOauthRedirectUrlString(client_id, redirect_uri_str, state);
   }
 
-  public void tokenOauth(String code) {
+  public void tokenOauth(String code, String sourceId) {
     String client_id = getKey("client_id");
     String client_secret = getKey("client_secret");
     mLineRepository.tokenOauth(
@@ -46,13 +52,16 @@ public class Repository {
             LOG.info("accessToken.getStatus(): " + accessToken.getStatus());
             LOG.info("accessToken.getMessage(): " + accessToken.getMessage());
             LOG.info("accessToken.getAccessToken(): " + accessToken.getAccessToken());
-            setKey("access_token", accessToken.getAccessToken());
+            LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+            config.setAccessToken(accessToken.getAccessToken());
+            mOfyRepository.saveLineTalkRoomConfig(config);
           }
         });
   }
 
-  public void notify(@Nonnull String message) {
-    String access_token = getKey("access_token");
+  public void notify(String source_id, @Nonnull String message) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
+    String access_token = config.getAccessToken();
     mLineRepository.notify(
         access_token,
         message,
@@ -69,8 +78,9 @@ public class Repository {
         });
   }
 
-  public void status() {
-    String access_token = getKey("access_token");
+  public void status(String source_id) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
+    String access_token = config.getAccessToken();
     mLineRepository.status(
         access_token,
         (apiRateLimit, responseStatusData) -> {
@@ -83,8 +93,9 @@ public class Repository {
         });
   }
 
-  public void revoke() {
-    String access_token = getKey("access_token");
+  public void revoke(String source_id) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
+    String access_token = config.getAccessToken();
     mLineRepository.revoke(
         access_token,
         (apiRateLimit, responseRevokeData) -> {
@@ -155,5 +166,46 @@ public class Repository {
       config = new LineTalkRoomConfig(sourceId);
     }
     return config;
+  }
+
+  public Channel loadChannel(long id) {
+    Channel channel = Objects.requireNonNull(mOfyRepository.loadChannel(id));
+    mLineMessagingClient = LineMessagingClient.builder(channel.getToken()).build();
+    return channel;
+  }
+
+  public State getState(String sourceId) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+    if (config.isCancellationConfirm()) {
+      return State.REMINDER_CANCELLATION_CONFIRM;
+    } else if (config.isReminderEnqueued()) {
+      return State.REMINDER_ENQUEUED;
+    } else if (config.getReminderMessage() != null) {
+      return State.HAS_REMINDER_MESSAGE;
+    } else {
+      return State.NO_REMINDER_MESSAGE;
+    }
+  }
+
+  public void clearEvent(String sourceId) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+    deleteReminderTask(config);
+    mOfyRepository.deleteLineTalkRoomConfig(sourceId);
+  }
+
+  /**
+   * 応答メッセージを送る
+   *
+   * @param replyToken Webhook で受信する応答トークン
+   * @param messages 送信するメッセージ (最大件数：5)
+   */
+  public void replyMessage(String replyToken, Message... messages) {
+    mLineMessagingClient.replyMessage(new ReplyMessage(replyToken, Arrays.asList(messages)));
+  }
+
+  public void setCancellationConfirm(String sourceId, boolean cancellationConfirm) {
+    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+    config.setCancellationConfirm(cancellationConfirm);
+    mOfyRepository.saveLineTalkRoomConfig(config);
   }
 }

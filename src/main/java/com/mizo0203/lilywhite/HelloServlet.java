@@ -27,7 +27,8 @@ public class HelloServlet extends HttpServlet {
     PrintWriter out = resp.getWriter();
     out.println("Hello, world");
     try (UseCase useCase = new UseCase()) {
-      useCase.authorizeOauth(resp::sendRedirect);
+      String state = req.getParameter("state");
+      useCase.authorizeOauth(state, resp::sendRedirect);
     }
   }
 }

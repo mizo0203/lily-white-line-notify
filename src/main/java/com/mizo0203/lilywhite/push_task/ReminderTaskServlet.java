@@ -34,9 +34,8 @@ public class ReminderTaskServlet extends HttpServlet {
     try (UseCase useCase = new UseCase()) {
       String source_id = req.getParameter(PARAM_NAME_SOURCE_ID);
       String message = req.getParameter(PARAM_NAME_MESSAGE);
-      useCase.status();
-      useCase.notify(message);
-      useCase.revoke();
+      useCase.status(source_id);
+      useCase.notify(source_id, message);
     }
   }
 }
