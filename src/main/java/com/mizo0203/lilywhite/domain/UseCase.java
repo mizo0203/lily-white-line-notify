@@ -28,8 +28,8 @@ public class UseCase implements AutoCloseable {
     callback.onBuildRedirectUrlString(mRepository.buildAuthorizeOauthRedirectUrlString(state));
   }
 
-  public void tokenOauth(String code, String sourceId) {
-    mRepository.tokenOauth(code, sourceId);
+  public void tokenOauth(String code, long editingReminderId) {
+    mRepository.tokenOauth(code, editingReminderId);
   }
 
   /** リマインダーメッセージを送信する */

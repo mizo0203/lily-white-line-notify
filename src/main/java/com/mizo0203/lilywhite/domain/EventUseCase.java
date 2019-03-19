@@ -128,13 +128,11 @@ public class EventUseCase implements AutoCloseable {
 
   private void onResponseNickname(MessageEvent event, String nickname) {
     mConfig.setNickname(nickname);
-    replyMessageToRequestReminderMessage(mSource.getSenderId(), event.getReplyToken());
+    replyMessageToRequestReminderMessage(event.getReplyToken());
   }
 
-  private void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
+  private void replyMessageToRequestReminderMessage(String replyToken) {
     mRepository.replyMessage(
-        replyToken,
-        new TextMessage("https://lily-white-line-notify.appspot.com/hello?state=" + senderId),
-        new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
+        replyToken, new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
   }
 }

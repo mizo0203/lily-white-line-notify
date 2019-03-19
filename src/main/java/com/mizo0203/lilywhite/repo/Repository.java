@@ -45,7 +45,7 @@ public class Repository {
     return mLineRepository.buildAuthorizeOauthRedirectUrlString(client_id, redirect_uri_str, state);
   }
 
-  public void tokenOauth(String code, String sourceId) {
+  public void tokenOauth(String code, long editingReminderId) {
     String client_id = getKey("client_id");
     String client_secret = getKey("client_secret");
     mLineRepository.tokenOauth(
@@ -57,8 +57,6 @@ public class Repository {
             LOG.info("accessToken.getStatus(): " + accessToken.getStatus());
             LOG.info("accessToken.getMessage(): " + accessToken.getMessage());
             LOG.info("accessToken.getAccessToken(): " + accessToken.getAccessToken());
-            long editingReminderId =
-                mOfyRepository.loadLineTalkRoomConfig(sourceId).getEditingReminderId();
             Reminder reminder = mOfyRepository.loadReminder(editingReminderId);
             reminder.setAccessToken(accessToken.getAccessToken());
             mOfyRepository.saveReminder(reminder);
