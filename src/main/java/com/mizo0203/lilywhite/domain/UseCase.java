@@ -3,6 +3,7 @@ package com.mizo0203.lilywhite.domain;
 import com.linecorp.bot.model.action.Action;
 import com.linecorp.bot.model.action.DatetimePickerAction;
 import com.linecorp.bot.model.action.PostbackAction;
+import com.linecorp.bot.model.event.Event;
 import com.linecorp.bot.model.message.Message;
 import com.linecorp.bot.model.message.TemplateMessage;
 import com.linecorp.bot.model.message.TextMessage;
@@ -10,7 +11,6 @@ import com.linecorp.bot.model.message.template.ButtonsTemplate;
 import com.linecorp.bot.model.message.template.ConfirmTemplate;
 import com.linecorp.bot.model.message.template.Template;
 import com.mizo0203.lilywhite.repo.Repository;
-import com.mizo0203.lilywhite.repo.State;
 import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 
 import javax.annotation.Nonnull;
@@ -100,6 +100,10 @@ public class UseCase implements AutoCloseable {
     return Collections.singletonList(new PostbackAction("リセット", ACTION_DATA_REQUEST_RESET));
   }
 
+  /* package */ void replyMessageToRequestNickname(String replyToken) {
+    mRepository.replyMessage(replyToken, new TextMessage("あなたのニックネームを入力してください\n例) みぞ"));
+  }
+
   public void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
     mRepository.replyMessage(
         replyToken,
@@ -135,10 +139,6 @@ public class UseCase implements AutoCloseable {
 
   public void enqueueReminderTask(String source_id, Date date) {
     mRepository.enqueueReminderTask(source_id, date.getTime());
-  }
-
-  public State getState(String source_id) {
-    return mRepository.getState(source_id);
   }
 
   public void replyReminderConfirmMessage(String replyToken, Date date) {
@@ -206,6 +206,10 @@ public class UseCase implements AutoCloseable {
 
   public void setCancellationConfirm(String sourceId, boolean cancellationConfirm) {
     mRepository.setCancellationConfirm(sourceId, cancellationConfirm);
+  }
+
+  public EventUseCase createEventUseCase(Event event) {
+    return new EventUseCase(this, event);
   }
 
   public interface AuthorizeOauthCallback {
