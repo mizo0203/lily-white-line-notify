@@ -1,13 +1,10 @@
 package com.mizo0203.lilywhite;
 
-import com.linecorp.bot.client.LineSignatureValidator;
 import com.linecorp.bot.model.event.CallbackRequest;
 import com.linecorp.bot.model.event.Event;
 import com.linecorp.bot.servlet.LineBotCallbackException;
-import com.linecorp.bot.servlet.LineBotCallbackRequestParser;
 import com.mizo0203.lilywhite.domain.EventUseCase;
 import com.mizo0203.lilywhite.domain.UseCase;
-import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -39,12 +36,8 @@ public class LilyWhiteLineBotServlet extends HttpServlet {
    *     to the client
    */
   private void onLineWebhook(HttpServletRequest req, HttpServletResponse resp) {
-    try (UseCase useCase = new UseCase()) {
-      Channel channel = useCase.loadChannel(1512704558L); // Channel ID - チャネルを区別するための識別子です。
-      LineBotCallbackRequestParser parser =
-          new LineBotCallbackRequestParser(
-              new LineSignatureValidator(channel.getSecret().getBytes()));
-      CallbackRequest callbackRequest = parser.handle(req);
+    try (UseCase useCase = new UseCase(1512704558L)) { // Channel ID - チャネルを区別するための識別子です。
+      CallbackRequest callbackRequest = useCase.getLineBotCallbackRequestParser().handle(req);
       for (Event event : callbackRequest.getEvents()) {
         try (EventUseCase eventUseCase = useCase.createEventUseCase(event)) {
           eventUseCase.onEvent();

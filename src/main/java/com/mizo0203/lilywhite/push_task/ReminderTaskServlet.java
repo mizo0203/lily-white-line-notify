@@ -16,6 +16,9 @@
 package com.mizo0203.lilywhite.push_task;
 
 import com.mizo0203.lilywhite.domain.UseCase;
+import com.mizo0203.lilywhite.repo.OfyRepository;
+import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
+import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -31,11 +34,14 @@ public class ReminderTaskServlet extends HttpServlet {
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-    try (UseCase useCase = new UseCase()) {
+    try (UseCase useCase = new UseCase(1512704558L)) {
       String source_id = req.getParameter(PARAM_NAME_SOURCE_ID);
       String message = req.getParameter(PARAM_NAME_MESSAGE);
-      useCase.status(source_id);
-      useCase.notify(source_id, message);
+      OfyRepository ofyRepository = new OfyRepository();
+      LineTalkRoomConfig config = ofyRepository.loadLineTalkRoomConfig(source_id);
+      Reminder reminder = ofyRepository.loadReminder(config.getEditingReminderId());
+      useCase.status(reminder);
+      useCase.notify(reminder, message);
     }
   }
 }

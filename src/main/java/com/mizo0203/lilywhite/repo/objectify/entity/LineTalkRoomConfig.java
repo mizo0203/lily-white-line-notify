@@ -4,8 +4,6 @@ import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.mizo0203.lilywhite.repo.objectify.OfyHelper;
 
-import javax.annotation.Nullable;
-
 /**
  * The @Entity tells Objectify about our entity. We also register it in {@link OfyHelper} Our
  * primary key @Id is set automatically by the Google Datastore for us.
@@ -21,17 +19,11 @@ import javax.annotation.Nullable;
 public class LineTalkRoomConfig {
 
   @Id private String sourceId;
-  private String reminderMessage;
-  private String reminderEnqueuedTaskName;
-  private boolean cancellationConfirm;
-  private String accessToken;
   private String nickname;
+  private Long editingReminderId;
 
   private LineTalkRoomConfig() {
     // LineTalkRoomConfig must have a no-arg constructor
-    reminderMessage = null;
-    reminderEnqueuedTaskName = null;
-    cancellationConfirm = false;
   }
 
   /** A convenience constructor */
@@ -52,40 +44,11 @@ public class LineTalkRoomConfig {
     return sourceId;
   }
 
-  public String getReminderMessage() {
-    return reminderMessage;
+  public Long getEditingReminderId() {
+    return editingReminderId;
   }
 
-  public void setReminderMessage(String reminderMessage) {
-    this.reminderMessage = reminderMessage;
-  }
-
-  public boolean isReminderEnqueued() {
-    return reminderEnqueuedTaskName != null;
-  }
-
-  @Nullable
-  public String getReminderEnqueuedTaskName() {
-    return reminderEnqueuedTaskName;
-  }
-
-  public void setReminderEnqueuedTaskName(String taskName) {
-    reminderEnqueuedTaskName = taskName;
-  }
-
-  public boolean isCancellationConfirm() {
-    return cancellationConfirm;
-  }
-
-  public void setCancellationConfirm(boolean cancellationConfirm) {
-    this.cancellationConfirm = cancellationConfirm;
-  }
-
-  public String getAccessToken() {
-    return accessToken;
-  }
-
-  public void setAccessToken(String accessToken) {
-    this.accessToken = accessToken;
+  public void setEditingReminderId(long editingReminderId) {
+    this.editingReminderId = editingReminderId;
   }
 }

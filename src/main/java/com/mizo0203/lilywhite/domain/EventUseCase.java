@@ -6,7 +6,9 @@ import com.linecorp.bot.model.event.MessageEvent;
 import com.linecorp.bot.model.event.PostbackEvent;
 import com.linecorp.bot.model.event.message.TextMessageContent;
 import com.linecorp.bot.model.event.source.Source;
+import com.linecorp.bot.model.message.TextMessage;
 import com.mizo0203.lilywhite.repo.OfyRepository;
+import com.mizo0203.lilywhite.repo.Repository;
 import com.mizo0203.lilywhite.repo.State;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
@@ -28,9 +30,11 @@ public class EventUseCase implements AutoCloseable {
   private final OfyRepository mOfyRepository;
   private final LineTalkRoomConfig mConfig;
   private final State mState;
+  private final Repository mRepository;
 
-  /* package */ EventUseCase(UseCase useCase, Event event) {
+  /* package */ EventUseCase(UseCase useCase, Repository repository, Event event) {
     mUseCase = useCase;
+    mRepository = repository;
     mEvent = event;
     mSource = mEvent.getSource();
     mTimestamp = mEvent.getTimestamp();
@@ -42,14 +46,8 @@ public class EventUseCase implements AutoCloseable {
   private static State getState(LineTalkRoomConfig config) {
     if (config.getNickname() == null) {
       return State.NO_NICKNAME;
-    } else if (config.getReminderMessage() == null) {
-      return State.NO_REMINDER_MESSAGE;
-    } else if (!config.isReminderEnqueued()) {
-      return State.HAS_REMINDER_MESSAGE;
-    } else if (!config.isCancellationConfirm()) {
-      return State.REMINDER_ENQUEUED;
     } else {
-      return State.REMINDER_CANCELLATION_CONFIRM;
+      return State.HAS_NICKNAME;
     }
   }
 
@@ -77,8 +75,8 @@ public class EventUseCase implements AutoCloseable {
 
   private void onLineFollow(FollowEvent event) {
     LOG.info("replyToken: " + event.getReplyToken());
-    mUseCase.initSource(mSource.getSenderId());
-    mUseCase.replyMessageToRequestNickname(event.getReplyToken());
+    mRepository.clearEvent(mConfig, null);
+    mRepository.replyMessage(event.getReplyToken(), new TextMessage("あなたのニックネームを入力してください\n例) みぞ"));
   }
 
   private void onLineMessage(MessageEvent event) {
@@ -96,14 +94,11 @@ public class EventUseCase implements AutoCloseable {
       case NO_NICKNAME:
         onResponseNickname(event, message.getText().split("\n")[0]);
         break;
-      case NO_REMINDER_MESSAGE:
-        String reminderMessage = message.getText().split("\n")[0];
-        mUseCase.setReminderMessage(mSource.getSenderId(), reminderMessage);
-        mUseCase.replyMessageToRequestReminderDate(event.getReplyToken());
+      case HAS_NICKNAME:
+        try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
+          reminderUseCase.onLineTextMessage(event, message);
+        }
         break;
-      case HAS_REMINDER_MESSAGE:
-      case REMINDER_ENQUEUED:
-      case REMINDER_CANCELLATION_CONFIRM:
       default:
         // NOP
         break;
@@ -111,132 +106,35 @@ public class EventUseCase implements AutoCloseable {
   }
 
   private void onLinePostBack(PostbackEvent event) {
-    @Nullable Map<String, String> params = event.getPostbackContent().getParams();
-    if (params == null || params.isEmpty()) {
-      onLinePostBackNoParam(event);
-    } else if (params.containsKey("date")) {
-      Date date = mUseCase.parseDate(params.get("date"));
-      onLinePostBackDateParam(event, date);
-    } else if (params.containsKey("time")) {
-      Date date = mUseCase.parseTime(params.get("time"));
-      onLinePostBackDateParam(event, date);
-    } else if (params.containsKey("datetime")) {
-      Date date = mUseCase.parseDatetime(params.get("datetime"));
-      onLinePostBackDateParam(event, date);
+    if (State.NO_NICKNAME.equals(mState)) {
+      return;
     }
-  }
-
-  private void onLinePostBackNoParam(PostbackEvent event) {
-    String data = event.getPostbackContent().getData();
-    if (UseCase.ACTION_DATA_REQUEST_REMINDER_CANCELLATION.equals(data)) {
-      onresponseReminderCancellation(event);
-    } else if (UseCase.ACTION_DATA_CANCEL_REMINDER.equals(data)) {
-      onresponseCancelReminder(event);
-    } else if (UseCase.ACTION_DATA_NOT_CANCEL_REMINDER.equals(data)) {
-      onresponseNotCancelReminder(event);
-    } else if (UseCase.ACTION_DATA_REQUEST_RESET.equals(data)) {
-      onResponseReset(event);
-    }
-  }
-
-  private void onLinePostBackDateParam(PostbackEvent event, Date date) {
-    String data = event.getPostbackContent().getData();
-    if (UseCase.ACTION_DATA_REQUEST_REMINDER_DATE_SET.equals(data)) {
-      onresponseReminderDate(event, date);
+    try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
+      @Nullable Map<String, String> params = event.getPostbackContent().getParams();
+      if (params == null || params.isEmpty()) {
+        reminderUseCase.onLinePostBackNoParam(event);
+      } else if (params.containsKey("date")) {
+        Date date = mUseCase.parseDate(params.get("date"));
+        reminderUseCase.onLinePostBackDateParam(event, date);
+      } else if (params.containsKey("time")) {
+        Date date = mUseCase.parseTime(params.get("time"));
+        reminderUseCase.onLinePostBackDateParam(event, date);
+      } else if (params.containsKey("datetime")) {
+        Date date = mUseCase.parseDatetime(params.get("datetime"));
+        reminderUseCase.onLinePostBackDateParam(event, date);
+      }
     }
   }
 
   private void onResponseNickname(MessageEvent event, String nickname) {
     mConfig.setNickname(nickname);
-    mUseCase.replyMessageToRequestReminderMessage(mSource.getSenderId(), event.getReplyToken());
+    replyMessageToRequestReminderMessage(mSource.getSenderId(), event.getReplyToken());
   }
 
-  private void onresponseReminderDate(PostbackEvent event, Date date) {
-    switch (mState) {
-      case NO_NICKNAME:
-      case NO_REMINDER_MESSAGE:
-        // NOP
-        break;
-      case HAS_REMINDER_MESSAGE:
-        mUseCase.enqueueReminderTask(mSource.getSenderId(), date);
-        mUseCase.replyReminderConfirmMessage(event.getReplyToken(), date);
-        break;
-      case REMINDER_ENQUEUED:
-      case REMINDER_CANCELLATION_CONFIRM:
-      default:
-        // NOP
-        break;
-    }
-  }
-
-  private void onresponseReminderCancellation(PostbackEvent event) {
-    switch (mState) {
-      case NO_NICKNAME:
-      case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
-        // NOP
-        break;
-      case REMINDER_ENQUEUED:
-        mUseCase.setCancellationConfirm(mSource.getSenderId(), true);
-        mUseCase.replyReminderCancellationConfirmMessage(event.getReplyToken());
-        break;
-      case REMINDER_CANCELLATION_CONFIRM:
-      default:
-        // NOP
-        break;
-    }
-  }
-
-  private void onresponseCancelReminder(PostbackEvent event) {
-    switch (mState) {
-      case NO_NICKNAME:
-      case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
-      case REMINDER_ENQUEUED:
-        // NOP
-        break;
-      case REMINDER_CANCELLATION_CONFIRM:
-        mUseCase.replyCanceledReminderMessage(event.getReplyToken());
-        mUseCase.initSource(mSource.getSenderId());
-        break;
-      default:
-        // NOP
-        break;
-    }
-  }
-
-  private void onresponseNotCancelReminder(PostbackEvent event) {
-    switch (mState) {
-      case NO_NICKNAME:
-      case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
-      case REMINDER_ENQUEUED:
-        // NOP
-        break;
-      case REMINDER_CANCELLATION_CONFIRM:
-        mUseCase.setCancellationConfirm(mSource.getSenderId(), false);
-        mUseCase.replyNotCanceledReminderMessage(event.getReplyToken());
-        break;
-      default:
-        // NOP
-        break;
-    }
-  }
-
-  private void onResponseReset(PostbackEvent event) {
-    switch (mState) {
-      case NO_NICKNAME:
-        // NOP
-        break;
-      case NO_REMINDER_MESSAGE:
-        mUseCase.replyMessageToRequestReminderMessage(mSource.getSenderId(), event.getReplyToken());
-        break;
-      case HAS_REMINDER_MESSAGE:
-      case REMINDER_ENQUEUED:
-      case REMINDER_CANCELLATION_CONFIRM:
-      default:
-        // NOP
-        break;
-    }
+  private void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
+    mRepository.replyMessage(
+        replyToken,
+        new TextMessage("https://lily-white-line-notify.appspot.com/hello?state=" + senderId),
+        new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
   }
 }

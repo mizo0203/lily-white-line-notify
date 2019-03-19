@@ -4,10 +4,11 @@ import com.googlecode.objectify.ObjectifyService;
 import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
+import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 /* package */ public class OfyRepository {
 
-  public void deleteLineTalkRoomConfig(String key) {
+  /* package */ void deleteLineTalkRoomConfig(String key) {
     ObjectifyService.ofy().delete().type(LineTalkRoomConfig.class).id(key).now();
   }
 
@@ -24,23 +25,35 @@ import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
     ObjectifyService.ofy().save().entity(entity).now();
   }
 
-  public KeyEntity loadKeyEntity(String key) {
-    return ObjectifyService.ofy().load().type(KeyEntity.class).id(key).now();
+  public Reminder factoryReminder() {
+    return loadReminder(ObjectifyService.ofy().save().entity(new Reminder()).now().getId());
   }
 
-  public void saveKeyEntity(KeyEntity entity) {
+  public Reminder loadReminder(long id) {
+    return ObjectifyService.ofy().load().type(Reminder.class).id(id).now();
+  }
+
+  public void saveReminder(Reminder entity) {
     ObjectifyService.ofy().save().entity(entity).now();
   }
 
-  public void deleteKeyEntity(String key) {
+  /* package */ KeyEntity loadKeyEntity(String key) {
+    return ObjectifyService.ofy().load().type(KeyEntity.class).id(key).now();
+  }
+
+  /* package */ void saveKeyEntity(KeyEntity entity) {
+    ObjectifyService.ofy().save().entity(entity).now();
+  }
+
+  /* package */ void deleteKeyEntity(String key) {
     ObjectifyService.ofy().delete().type(KeyEntity.class).id(key).now();
   }
 
-  public Channel loadChannel(long id) {
+  /* package */ Channel loadChannel(long id) {
     return ObjectifyService.ofy().load().type(Channel.class).id(id).now();
   }
 
-  public void saveChannel(Channel entity) {
+  /* package */ void saveChannel(Channel entity) {
     ObjectifyService.ofy().save().entity(entity).now();
   }
 }

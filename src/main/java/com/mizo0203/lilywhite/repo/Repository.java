@@ -1,11 +1,14 @@
 package com.mizo0203.lilywhite.repo;
 
+import com.linecorp.bot.client.LineSignatureValidator;
 import com.linecorp.bot.model.ReplyMessage;
 import com.linecorp.bot.model.message.Message;
+import com.linecorp.bot.servlet.LineBotCallbackRequestParser;
 import com.mizo0203.lilywhite.domain.Define;
 import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
+import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -19,12 +22,15 @@ public class Repository {
   private final OfyRepository mOfyRepository;
   private final LineRepository mLineRepository;
   private final PushQueueRepository mPushQueueRepository;
-  private LineMessagingClient mLineMessagingClient;
+  private final Channel mChannel;
+  private final LineMessagingClient mLineMessagingClient;
 
-  public Repository() {
+  public Repository(long channelId) {
     mOfyRepository = new OfyRepository();
     mLineRepository = new LineRepository();
     mPushQueueRepository = new PushQueueRepository();
+    mChannel = Objects.requireNonNull(mOfyRepository.loadChannel(channelId));
+    mLineMessagingClient = LineMessagingClient.builder(mChannel.getToken()).build();
   }
 
   public void destroy() {
@@ -51,16 +57,17 @@ public class Repository {
             LOG.info("accessToken.getStatus(): " + accessToken.getStatus());
             LOG.info("accessToken.getMessage(): " + accessToken.getMessage());
             LOG.info("accessToken.getAccessToken(): " + accessToken.getAccessToken());
-            LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
-            config.setAccessToken(accessToken.getAccessToken());
-            mOfyRepository.saveLineTalkRoomConfig(config);
+            long editingReminderId =
+                mOfyRepository.loadLineTalkRoomConfig(sourceId).getEditingReminderId();
+            Reminder reminder = mOfyRepository.loadReminder(editingReminderId);
+            reminder.setAccessToken(accessToken.getAccessToken());
+            mOfyRepository.saveReminder(reminder);
           }
         });
   }
 
-  public void notify(String source_id, @Nonnull String message) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
-    String access_token = config.getAccessToken();
+  public void notify(Reminder reminder, @Nonnull String message) {
+    String access_token = reminder.getAccessToken();
     mLineRepository.notify(
         access_token,
         message,
@@ -77,9 +84,8 @@ public class Repository {
         });
   }
 
-  public void status(String source_id) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
-    String access_token = config.getAccessToken();
+  public void status(Reminder reminder) {
+    String access_token = reminder.getAccessToken();
     mLineRepository.status(
         access_token,
         (apiRateLimit, responseStatusData) -> {
@@ -92,9 +98,8 @@ public class Repository {
         });
   }
 
-  public void revoke(String source_id) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(source_id);
-    String access_token = config.getAccessToken();
+  public void revoke(Reminder reminder) {
+    String access_token = reminder.getAccessToken();
     mLineRepository.revoke(
         access_token,
         (apiRateLimit, responseRevokeData) -> {
@@ -134,49 +139,28 @@ public class Repository {
     mOfyRepository.deleteKeyEntity(key);
   }
 
-  public void setReminderMessage(String sourceId, String reminderMessage) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
-    config.setReminderMessage(reminderMessage);
-    mOfyRepository.saveLineTalkRoomConfig(config);
-  }
-
-  public void enqueueReminderTask(String sourceId, long etaMillis) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
+  public void enqueueReminderTask(LineTalkRoomConfig config, Reminder reminder, long etaMillis) {
     String taskName =
         mPushQueueRepository.enqueueReminderTask(
-            config.getSourceId(), etaMillis, config.getReminderMessage());
+            config.getSourceId(), etaMillis, reminder.getReminderMessage());
     LOG.info("enqueueReminderTask taskName: " + taskName);
-    config.setReminderEnqueuedTaskName(taskName);
-    mOfyRepository.saveLineTalkRoomConfig(config);
+    reminder.setReminderEnqueuedTaskName(taskName);
   }
 
-  private void deleteReminderTask(LineTalkRoomConfig config) {
-    String taskName = config.getReminderEnqueuedTaskName();
+  private void deleteReminderTask(Reminder reminder) {
+    String taskName = reminder.getReminderEnqueuedTaskName();
     if (taskName == null || taskName.isEmpty()) {
       return;
     }
     mPushQueueRepository.deleteReminderTask(taskName);
-    config.setReminderEnqueuedTaskName(null);
+    reminder.setReminderEnqueuedTaskName(null);
   }
 
-  private LineTalkRoomConfig getOrCreateLineTalkRoomConfig(String sourceId) {
-    LineTalkRoomConfig config = mOfyRepository.loadLineTalkRoomConfig(sourceId);
-    if (config == null) {
-      config = new LineTalkRoomConfig(sourceId);
+  public void clearEvent(LineTalkRoomConfig config, @Nullable Reminder reminder) {
+    if (reminder != null) {
+      deleteReminderTask(reminder);
     }
-    return config;
-  }
-
-  public Channel loadChannel(long id) {
-    Channel channel = Objects.requireNonNull(mOfyRepository.loadChannel(id));
-    mLineMessagingClient = LineMessagingClient.builder(channel.getToken()).build();
-    return channel;
-  }
-
-  public void clearEvent(String sourceId) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
-    deleteReminderTask(config);
-    mOfyRepository.deleteLineTalkRoomConfig(sourceId);
+    mOfyRepository.deleteLineTalkRoomConfig(config.getSourceId());
   }
 
   /**
@@ -189,9 +173,8 @@ public class Repository {
     mLineMessagingClient.replyMessage(new ReplyMessage(replyToken, Arrays.asList(messages)));
   }
 
-  public void setCancellationConfirm(String sourceId, boolean cancellationConfirm) {
-    LineTalkRoomConfig config = getOrCreateLineTalkRoomConfig(sourceId);
-    config.setCancellationConfirm(cancellationConfirm);
-    mOfyRepository.saveLineTalkRoomConfig(config);
+  public LineBotCallbackRequestParser getLineBotCallbackRequestParser() {
+    return new LineBotCallbackRequestParser(
+        new LineSignatureValidator(mChannel.getSecret().getBytes()));
   }
 }

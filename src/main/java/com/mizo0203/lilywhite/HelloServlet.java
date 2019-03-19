@@ -26,7 +26,7 @@ public class HelloServlet extends HttpServlet {
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     PrintWriter out = resp.getWriter();
     out.println("Hello, world");
-    try (UseCase useCase = new UseCase()) {
+    try (UseCase useCase = new UseCase(1512704558L)) {
       String state = req.getParameter("state");
       useCase.authorizeOauth(state, resp::sendRedirect);
     }
