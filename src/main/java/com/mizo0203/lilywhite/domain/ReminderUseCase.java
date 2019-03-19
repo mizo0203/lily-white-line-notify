@@ -29,6 +29,8 @@ public class ReminderUseCase implements AutoCloseable {
 
   private static final String ACTION_DATA_REQUEST_REMINDER_CANCELLATION =
       "ACTION_DATA_REQUEST_REMINDER_CANCELLATION";
+  private static final String ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION =
+      "ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION";
   private static final String ACTION_DATA_CANCEL_REMINDER = "ACTION_DATA_CANCEL_REMINDER";
   private static final String ACTION_DATA_NOT_CANCEL_REMINDER = "ACTION_DATA_NOT_CANCEL_REMINDER";
   private static final String ACTION_DATA_REQUEST_RESET = "ACTION_DATA_REQUEST_RESET";
@@ -59,12 +61,14 @@ public class ReminderUseCase implements AutoCloseable {
     mTranslator = new Translator();
   }
 
-  private static ReminderState getReminderState(Reminder config) {
-    if (config.getReminderMessage() == null) {
+  private static ReminderState getReminderState(Reminder reminder) {
+    if (reminder.getReminderMessage() == null) {
       return ReminderState.NO_REMINDER_MESSAGE;
-    } else if (!config.isReminderEnqueued()) {
-      return ReminderState.HAS_REMINDER_MESSAGE;
-    } else if (!config.isCancellationConfirm()) {
+    } else if (reminder.getAccessToken() == null) {
+      return ReminderState.NO_ACCESS_TOKEN;
+    } else if (!reminder.isReminderEnqueued()) {
+      return ReminderState.HAS_ACCESS_TOKEN;
+    } else if (!reminder.isCancellationConfirm()) {
       return ReminderState.REMINDER_ENQUEUED;
     } else {
       return ReminderState.REMINDER_CANCELLATION_CONFIRM;
@@ -81,7 +85,8 @@ public class ReminderUseCase implements AutoCloseable {
       case NO_REMINDER_MESSAGE:
         onResponseReminderMessage(event, message.getText().split("\n")[0]);
         break;
-      case HAS_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
+      case HAS_ACCESS_TOKEN:
       case REMINDER_ENQUEUED:
       case REMINDER_CANCELLATION_CONFIRM:
       default:
@@ -92,7 +97,46 @@ public class ReminderUseCase implements AutoCloseable {
 
   private void onResponseReminderMessage(MessageEvent event, String reminderMessage) {
     mReminder.setReminderMessage(reminderMessage);
-    mRepository.replyMessage(event.getReplyToken(), createMessageToRequestReminderDate());
+    mRepository.replyMessage(event.getReplyToken(), createMessageToRequestAccessToken());
+  }
+
+  private void onResponseCompleteAccessToken(PostbackEvent event) {
+    switch (mReminderState) {
+      case NO_REMINDER_MESSAGE:
+        // NOP
+        break;
+      case NO_ACCESS_TOKEN:
+        mRepository.replyMessage(event.getReplyToken(), createMessageToRequestAccessToken());
+        break;
+      case HAS_ACCESS_TOKEN:
+        mRepository.replyMessage(event.getReplyToken(), createMessageToRequestReminderDate());
+        break;
+      case REMINDER_ENQUEUED:
+      case REMINDER_CANCELLATION_CONFIRM:
+      default:
+        // NOP
+        break;
+    }
+  }
+
+  private Message createMessageToRequestAccessToken() {
+    return new TemplateMessage(
+        "テンプレートメッセージはiOS版およびAndroid版のLINE 6.7.0以降で対応しています。", createButtonsTemplateToAccessToken());
+  }
+
+  private Template createButtonsTemplateToAccessToken() {
+    return ButtonsTemplate.builder()
+        .text("通知を送信するトークルームを選択してください")
+        .actions(createPostbackActionsToRequestAccessToken())
+        .build();
+  }
+
+  private List<Action> createPostbackActionsToRequestAccessToken() {
+    return Arrays.asList(
+        new URIAction(
+            "トークルームを選択",
+            "https://lily-white-line-notify.appspot.com/hello?state=" + mReminder.getId()),
+        new PostbackAction("完了", ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION));
   }
 
   private Message createMessageToRequestReminderDate() {
@@ -122,6 +166,8 @@ public class ReminderUseCase implements AutoCloseable {
     String data = event.getPostbackContent().getData();
     if (ACTION_DATA_REQUEST_REMINDER_CANCELLATION.equals(data)) {
       onResponseReminderCancellation(event);
+    } else if (ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION.equals(data)) {
+      onResponseCompleteAccessToken(event);
     } else if (ACTION_DATA_CANCEL_REMINDER.equals(data)) {
       onResponseCancelReminder(event);
     } else if (ACTION_DATA_NOT_CANCEL_REMINDER.equals(data)) {
@@ -141,9 +187,10 @@ public class ReminderUseCase implements AutoCloseable {
   private void onResponseReminderDate(PostbackEvent event, Date date) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
         // NOP
         break;
-      case HAS_REMINDER_MESSAGE:
+      case HAS_ACCESS_TOKEN:
         enqueueReminderTask(date);
         replyReminderConfirmMessage(event.getReplyToken(), date);
         break;
@@ -158,7 +205,8 @@ public class ReminderUseCase implements AutoCloseable {
   private void onResponseReminderCancellation(PostbackEvent event) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
+      case HAS_ACCESS_TOKEN:
         // NOP
         break;
       case REMINDER_ENQUEUED:
@@ -175,7 +223,8 @@ public class ReminderUseCase implements AutoCloseable {
   private void onResponseCancelReminder(PostbackEvent event) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
+      case HAS_ACCESS_TOKEN:
       case REMINDER_ENQUEUED:
         // NOP
         break;
@@ -192,7 +241,8 @@ public class ReminderUseCase implements AutoCloseable {
   private void onResponseNotCancelReminder(PostbackEvent event) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
-      case HAS_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
+      case HAS_ACCESS_TOKEN:
       case REMINDER_ENQUEUED:
         // NOP
         break;
@@ -211,7 +261,8 @@ public class ReminderUseCase implements AutoCloseable {
       case NO_REMINDER_MESSAGE:
         replyMessageToRequestReminderMessage(mConfig.getSourceId(), event.getReplyToken());
         break;
-      case HAS_REMINDER_MESSAGE:
+      case NO_ACCESS_TOKEN:
+      case HAS_ACCESS_TOKEN:
       case REMINDER_ENQUEUED:
       case REMINDER_CANCELLATION_CONFIRM:
       default:
@@ -240,8 +291,7 @@ public class ReminderUseCase implements AutoCloseable {
   private void replyReminderConfirmMessage(String replyToken, Date date) {
     mRepository.replyMessage(
         replyToken,
-        createMessageToConfirmReminder(
-            mTranslator.formatDate(date) + "\nにリマインダーをセットします\n通知を送信するトークルームを選択してください"));
+        createMessageToConfirmReminder("リマインダーをセットしましたー\n" + mTranslator.formatDate(date)));
   }
 
   private Message createMessageToConfirmReminder(String text) {
@@ -258,11 +308,7 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private List<Action> createPostbackActionsToRequestReminderCancellation() {
-    return Arrays.asList(
-        new URIAction(
-            "トークルームを選択",
-            "https://lily-white-line-notify.appspot.com/hello?state=" + mReminder.getId()),
-        createPostbackActionToRequestReminderCancellation());
+    return Collections.singletonList(createPostbackActionToRequestReminderCancellation());
   }
 
   private Action createPostbackActionToRequestReminderCancellation() {
