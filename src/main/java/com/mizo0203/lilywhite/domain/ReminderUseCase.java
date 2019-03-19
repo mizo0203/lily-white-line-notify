@@ -3,6 +3,7 @@ package com.mizo0203.lilywhite.domain;
 import com.linecorp.bot.model.action.Action;
 import com.linecorp.bot.model.action.DatetimePickerAction;
 import com.linecorp.bot.model.action.PostbackAction;
+import com.linecorp.bot.model.action.URIAction;
 import com.linecorp.bot.model.event.MessageEvent;
 import com.linecorp.bot.model.event.PostbackEvent;
 import com.linecorp.bot.model.event.message.TextMessageContent;
@@ -239,7 +240,8 @@ public class ReminderUseCase implements AutoCloseable {
   private void replyReminderConfirmMessage(String replyToken, Date date) {
     mRepository.replyMessage(
         replyToken,
-        createMessageToConfirmReminder("リマインダーをセットしましたー\n" + mTranslator.formatDate(date)));
+        createMessageToConfirmReminder(
+            mTranslator.formatDate(date) + "\nにリマインダーをセットします\n通知を送信するトークルームを選択してください"));
   }
 
   private Message createMessageToConfirmReminder(String text) {
@@ -256,7 +258,11 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private List<Action> createPostbackActionsToRequestReminderCancellation() {
-    return Collections.singletonList(createPostbackActionToRequestReminderCancellation());
+    return Arrays.asList(
+        new URIAction(
+            "トークルームを選択",
+            "https://lily-white-line-notify.appspot.com/hello?state=" + mReminder.getId()),
+        createPostbackActionToRequestReminderCancellation());
   }
 
   private Action createPostbackActionToRequestReminderCancellation() {
@@ -305,8 +311,6 @@ public class ReminderUseCase implements AutoCloseable {
 
   private void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
     mRepository.replyMessage(
-        replyToken,
-        new TextMessage("https://lily-white-line-notify.appspot.com/hello?state=" + senderId),
-        new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
+        replyToken, new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
   }
 }

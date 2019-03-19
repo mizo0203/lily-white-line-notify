@@ -31,7 +31,8 @@ public class RedirectServlet extends HttpServlet {
     LOG.info("error:\t" + req.getParameter("error"));
     LOG.info("error_description:\t" + req.getParameter("error_description"));
     try (UseCase useCase = new UseCase(1512704558L)) {
-      useCase.tokenOauth(req.getParameter("code"), req.getParameter("state"));
+      long editingReminderId = Long.parseLong(req.getParameter("state"));
+      useCase.tokenOauth(req.getParameter("code"), editingReminderId);
     }
   }
 }
