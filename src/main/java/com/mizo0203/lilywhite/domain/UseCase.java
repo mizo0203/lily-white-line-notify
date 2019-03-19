@@ -38,7 +38,7 @@ public class UseCase implements AutoCloseable {
   }
 
   public void status(Reminder reminder) {
-    mRepository.status(reminder);
+    mRepository.status(reminder, null);
   }
 
   @SuppressWarnings("unused")

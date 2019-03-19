@@ -5,6 +5,8 @@ import com.linecorp.bot.model.ReplyMessage;
 import com.linecorp.bot.model.message.Message;
 import com.linecorp.bot.servlet.LineBotCallbackRequestParser;
 import com.mizo0203.lilywhite.domain.Define;
+import com.mizo0203.lilywhite.repo.line.data.ResponseApiRateLimit;
+import com.mizo0203.lilywhite.repo.line.data.ResponseStatusData;
 import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
@@ -82,7 +84,7 @@ public class Repository {
         });
   }
 
-  public void status(Reminder reminder) {
+  public void status(Reminder reminder, @Nullable final Callback<ResponseStatusData> callback) {
     String access_token = reminder.getAccessToken();
     mLineRepository.status(
         access_token,
@@ -92,6 +94,9 @@ public class Repository {
             LOG.info("responseStatusData.getMessage(): " + responseStatusData.getMessage());
             LOG.info("responseStatusData.getTargetType(): " + responseStatusData.getTargetType());
             LOG.info("responseStatusData.getTarget(): " + responseStatusData.getTarget());
+          }
+          if (callback != null) {
+            callback.response(apiRateLimit, responseStatusData);
           }
         });
   }
@@ -174,5 +179,10 @@ public class Repository {
   public LineBotCallbackRequestParser getLineBotCallbackRequestParser() {
     return new LineBotCallbackRequestParser(
         new LineSignatureValidator(mChannel.getSecret().getBytes()));
+  }
+
+  public interface Callback<T> {
+
+    void response(@Nullable ResponseApiRateLimit apiRateLimit, @Nullable T res);
   }
 }
