@@ -24,6 +24,7 @@ public class LineTalkRoomConfig {
   private String reminderMessage;
   private String reminderEnqueuedTaskName;
   private boolean cancellationConfirm;
+  private String accessToken;
 
   public LineTalkRoomConfig() {
     // LineTalkRoomConfig must have a no-arg constructor
@@ -69,5 +70,13 @@ public class LineTalkRoomConfig {
 
   public void setCancellationConfirm(boolean cancellationConfirm) {
     this.cancellationConfirm = cancellationConfirm;
+  }
+
+  public String getAccessToken() {
+    return accessToken;
+  }
+
+  public void setAccessToken(String accessToken) {
+    this.accessToken = accessToken;
   }
 }

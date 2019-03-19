@@ -1,6 +1,7 @@
 package com.mizo0203.lilywhite.repo;
 
 import com.googlecode.objectify.ObjectifyService;
+import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
 import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
@@ -33,5 +34,13 @@ import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 
   public void deleteKeyEntity(String key) {
     ObjectifyService.ofy().delete().type(KeyEntity.class).id(key).now();
+  }
+
+  public Channel loadChannel(long id) {
+    return ObjectifyService.ofy().load().type(Channel.class).id(id).now();
+  }
+
+  public void saveChannel(Channel entity) {
+    ObjectifyService.ofy().save().entity(entity).now();
   }
 }
