@@ -101,10 +101,9 @@ public class Repository {
         });
   }
 
-  public void revoke(Reminder reminder) {
-    String access_token = reminder.getAccessToken();
+  public void revoke(@Nonnull String accessToken) {
     mLineRepository.revoke(
-        access_token,
+        accessToken,
         (apiRateLimit, responseRevokeData) -> {
           if (responseRevokeData != null) {
             LOG.info("responseRevokeData.getStatus(): " + responseRevokeData.getStatus());

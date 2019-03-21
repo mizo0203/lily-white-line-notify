@@ -1,9 +1,6 @@
 package com.mizo0203.lilywhite.domain;
 
-import com.linecorp.bot.model.event.Event;
-import com.linecorp.bot.model.event.FollowEvent;
-import com.linecorp.bot.model.event.MessageEvent;
-import com.linecorp.bot.model.event.PostbackEvent;
+import com.linecorp.bot.model.event.*;
 import com.linecorp.bot.model.event.message.TextMessageContent;
 import com.linecorp.bot.model.event.source.Source;
 import com.linecorp.bot.model.message.TextMessage;
@@ -31,6 +28,7 @@ public class EventUseCase implements AutoCloseable {
   private final LineTalkRoomConfig mConfig;
   private final State mState;
   private final Repository mRepository;
+  private boolean mDelete = false;
 
   /* package */ EventUseCase(UseCase useCase, Repository repository, Event event) {
     mUseCase = useCase;
@@ -53,7 +51,11 @@ public class EventUseCase implements AutoCloseable {
 
   @Override
   public void close() {
-    mOfyRepository.saveLineTalkRoomConfig(mConfig);
+    if (mDelete) {
+      mOfyRepository.deleteLineTalkRoomConfig(mConfig.getSourceId());
+    } else {
+      mOfyRepository.saveLineTalkRoomConfig(mConfig);
+    }
   }
 
   public void onEvent() {
@@ -70,6 +72,9 @@ public class EventUseCase implements AutoCloseable {
     } else if (mEvent instanceof PostbackEvent) {
       LOG.info("PostbackEvent");
       onLinePostBack((PostbackEvent) mEvent);
+    } else if (mEvent instanceof UnfollowEvent) {
+      LOG.info("PostbackEvent");
+      onLineUnfollow();
     }
   }
 
@@ -124,6 +129,15 @@ public class EventUseCase implements AutoCloseable {
         reminderUseCase.onLinePostBackDateParam(event, date);
       }
     }
+  }
+
+  private void onLineUnfollow() {
+    if (mConfig.getEditingReminderId() != null) {
+      try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
+        reminderUseCase.onLineUnfollow();
+      }
+    }
+    mDelete = true;
   }
 
   private void onResponseNickname(MessageEvent event, String nickname) {

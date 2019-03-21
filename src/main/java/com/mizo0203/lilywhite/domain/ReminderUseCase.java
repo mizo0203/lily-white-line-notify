@@ -47,6 +47,7 @@ public class ReminderUseCase implements AutoCloseable {
   private final Reminder mReminder;
   private final ReminderState mReminderState;
   private final Translator mTranslator;
+  private boolean mDelete;
 
   /* package */ ReminderUseCase(Repository repository, LineTalkRoomConfig config) {
     mRepository = repository;
@@ -78,7 +79,11 @@ public class ReminderUseCase implements AutoCloseable {
 
   @Override
   public void close() {
-    mOfyRepository.saveReminder(mReminder);
+    if (mDelete) {
+      mOfyRepository.deleteReminder(mReminder.getId());
+    } else {
+      mOfyRepository.saveReminder(mReminder);
+    }
   }
 
   /* package */ void onLineTextMessage(MessageEvent event, TextMessageContent message) {
@@ -123,12 +128,10 @@ public class ReminderUseCase implements AutoCloseable {
   private Repository.Callback<ResponseStatusData> createStatusCallback(final PostbackEvent event) {
     return (apiRateLimit, res) -> {
       if (res != null && res.getTarget() != null) {
-        mRepository.replyMessage(
-                event.getReplyToken(), createMessageToRequestReminderDate());
+        mRepository.replyMessage(event.getReplyToken(), createMessageToRequestReminderDate());
       } else {
         mReminder.setAccessToken(null);
-        mRepository.replyMessage(
-                event.getReplyToken(), createMessageToRequestAccessToken());
+        mRepository.replyMessage(event.getReplyToken(), createMessageToRequestAccessToken());
       }
     };
   }
@@ -379,5 +382,14 @@ public class ReminderUseCase implements AutoCloseable {
   private void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
     mRepository.replyMessage(
         replyToken, new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
+  }
+
+  /* package */ void onLineUnfollow() {
+    String accessToken = mReminder.getAccessToken();
+    if (accessToken != null) {
+      mRepository.revoke(accessToken);
+    }
+    mConfig.setEditingReminderId(null);
+    mDelete = true;
   }
 }
