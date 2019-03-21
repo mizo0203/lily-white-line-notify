@@ -207,6 +207,7 @@ public class ReminderUseCase implements AutoCloseable {
       case HAS_ACCESS_TOKEN:
         enqueueReminderTask(date);
         replyReminderConfirmMessage(event.getReplyToken(), date);
+        notifyReminderConfirmMessage(date);
         break;
       case REMINDER_ENQUEUED:
       case REMINDER_CANCELLATION_CONFIRM:
@@ -306,6 +307,12 @@ public class ReminderUseCase implements AutoCloseable {
     mRepository.replyMessage(
         replyToken,
         createMessageToConfirmReminder("リマインダーをセットしましたー\n" + mTranslator.formatDate(date)));
+  }
+
+  private void notifyReminderConfirmMessage(Date date) {
+    mRepository.notify(
+        mReminder,
+        mConfig.getNickname() + "さんが\n" + mTranslator.formatDate(date) + " に\n" + "リマインダーをセットしました");
   }
 
   private Message createMessageToConfirmReminder(String text) {
