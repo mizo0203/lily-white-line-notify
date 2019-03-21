@@ -8,7 +8,7 @@ import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 /* package */ public class OfyRepository {
 
-  /* package */ void deleteLineTalkRoomConfig(String key) {
+  public void deleteLineTalkRoomConfig(String key) {
     ObjectifyService.ofy().delete().type(LineTalkRoomConfig.class).id(key).now();
   }
 
@@ -35,6 +35,10 @@ import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
   public void saveReminder(Reminder entity) {
     ObjectifyService.ofy().save().entity(entity).now();
+  }
+
+  public void deleteReminder(long id) {
+    ObjectifyService.ofy().delete().type(Reminder.class).id(id).now();
   }
 
   /* package */ KeyEntity loadKeyEntity(String key) {

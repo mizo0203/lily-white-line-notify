@@ -48,7 +48,7 @@ public class LineTalkRoomConfig {
     return editingReminderId;
   }
 
-  public void setEditingReminderId(long editingReminderId) {
+  public void setEditingReminderId(Long editingReminderId) {
     this.editingReminderId = editingReminderId;
   }
 }

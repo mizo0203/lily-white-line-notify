@@ -41,11 +41,6 @@ public class UseCase implements AutoCloseable {
     mRepository.status(reminder, null);
   }
 
-  @SuppressWarnings("unused")
-  public void revoke(Reminder reminder) {
-    mRepository.revoke(reminder);
-  }
-
   /* package */ Date parseDate(String date) {
     return mTranslator.parseDate(date);
   }
