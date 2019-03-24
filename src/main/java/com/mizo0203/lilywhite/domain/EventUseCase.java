@@ -80,7 +80,6 @@ public class EventUseCase implements AutoCloseable {
 
   private void onLineFollow(FollowEvent event) {
     LOG.info("replyToken: " + event.getReplyToken());
-    mRepository.clearEvent(mConfig, null);
     mRepository.replyMessage(event.getReplyToken(), new TextMessage("あなたのニックネームを入力してください\n例) みぞ"));
   }
 
@@ -134,7 +133,7 @@ public class EventUseCase implements AutoCloseable {
   private void onLineUnfollow() {
     if (mConfig.getEditingReminderId() != null) {
       try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
-        reminderUseCase.onLineUnfollow();
+        reminderUseCase.deleteReminder();
       }
     }
     mDelete = true;

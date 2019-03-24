@@ -250,8 +250,8 @@ public class ReminderUseCase implements AutoCloseable {
         // NOP
         break;
       case REMINDER_CANCELLATION_CONFIRM:
+        deleteReminder();
         replyCanceledReminderMessage(event.getReplyToken());
-        mRepository.clearEvent(mConfig, mReminder);
         break;
       default:
         // NOP
@@ -387,12 +387,23 @@ public class ReminderUseCase implements AutoCloseable {
         replyToken, new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
   }
 
-  /* package */ void onLineUnfollow() {
-    String accessToken = mReminder.getAccessToken();
-    if (accessToken != null) {
-      mRepository.revoke(accessToken);
-    }
+  /* package */ void deleteReminder() {
+    deleteReminderTask();
+    mRepository.notify(mReminder, mConfig.getNickname() + "さんがリマインダーをキャンセルしました");
+    revokeAccessToken();
     mConfig.setEditingReminderId(null);
     mDelete = true;
+  }
+
+  private void revokeAccessToken() {
+    String accessToken = mReminder.getAccessToken();
+    mRepository.revoke(accessToken);
+    mReminder.setAccessToken(null);
+  }
+
+  private void deleteReminderTask() {
+    String taskName = mReminder.getReminderEnqueuedTaskName();
+    mRepository.deleteReminderTask(taskName);
+    mReminder.setReminderEnqueuedTaskName(null);
   }
 }

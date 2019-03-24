@@ -101,7 +101,10 @@ public class Repository {
         });
   }
 
-  public void revoke(@Nonnull String accessToken) {
+  public void revoke(@Nullable String accessToken) {
+    if (accessToken == null || accessToken.isEmpty()) {
+      return;
+    }
     mLineRepository.revoke(
         accessToken,
         (apiRateLimit, responseRevokeData) -> {
@@ -149,20 +152,11 @@ public class Repository {
     reminder.setReminderEnqueuedTaskName(taskName);
   }
 
-  private void deleteReminderTask(Reminder reminder) {
-    String taskName = reminder.getReminderEnqueuedTaskName();
+  public void deleteReminderTask(@Nullable String taskName) {
     if (taskName == null || taskName.isEmpty()) {
       return;
     }
     mPushQueueRepository.deleteReminderTask(taskName);
-    reminder.setReminderEnqueuedTaskName(null);
-  }
-
-  public void clearEvent(LineTalkRoomConfig config, @Nullable Reminder reminder) {
-    if (reminder != null) {
-      deleteReminderTask(reminder);
-    }
-    mOfyRepository.deleteLineTalkRoomConfig(config.getSourceId());
   }
 
   /**
