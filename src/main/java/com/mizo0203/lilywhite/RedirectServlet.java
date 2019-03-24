@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.logging.Logger;
 
 public class RedirectServlet extends HttpServlet {
@@ -24,8 +23,6 @@ public class RedirectServlet extends HttpServlet {
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-    PrintWriter out = resp.getWriter();
-    out.println("Hello, LINE Notify World");
     LOG.info("code:\t" + req.getParameter("code"));
     LOG.info("stat:\t" + req.getParameter("state"));
     LOG.info("error:\t" + req.getParameter("error"));
@@ -34,5 +31,6 @@ public class RedirectServlet extends HttpServlet {
       long editingReminderId = Long.parseLong(req.getParameter("state"));
       useCase.tokenOauth(req.getParameter("code"), editingReminderId);
     }
+    resp.sendRedirect("https://line.me/R/ti/p/%40gym9001e");
   }
 }

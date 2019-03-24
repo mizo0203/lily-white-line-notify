@@ -143,7 +143,10 @@ public class ReminderUseCase implements AutoCloseable {
 
   private Template createButtonsTemplateToAccessToken() {
     return ButtonsTemplate.builder()
-        .text("通知を送信するトークルームを選択してください")
+        .text(
+            "1. 通知を送信するトークルームを選択してください\n"
+                + "2. LINE の公式アカウント \"LINE Notify\" をトークルームに招待してください\n"
+                + "3. 完了ボタンを押してくささい")
         .actions(createPostbackActionsToRequestAccessToken())
         .build();
   }
