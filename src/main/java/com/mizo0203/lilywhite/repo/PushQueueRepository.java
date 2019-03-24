@@ -25,20 +25,17 @@ import java.util.logging.Logger;
   /**
    * リマインダータスクを追加する
    *
-   * @param source_id
-   *     送信先のID。Webhookイベントオブジェクトで返される、userId、groupId、またはroomIdの値を使用します。LINEアプリに表示されるLINE
-   *     IDは使用しないでください。
    * @param etaMillis Sets the approximate absolute time to execute. (i.e. etaMillis is comparable
    *     with {@link System#currentTimeMillis()}).
    * @param message メッセージのテキスト。最大文字数：2000
    * @return タスク名 - App Engine によってタスクに一意の名前が割り当てられます
    */
-  protected String enqueueReminderTask(String source_id, long etaMillis, String message) {
+  protected String enqueueReminderTask(long reminderId, long etaMillis, String message) {
     LOG.info("enqueueReminderTask");
     return mQueue
         .add(
             TaskOptions.Builder.withUrl("/push_task/reminder_task")
-                .param(ReminderTaskServlet.PARAM_NAME_SOURCE_ID, source_id)
+                .param(ReminderTaskServlet.PARAM_NAME_REMINDER_ID, String.valueOf(reminderId))
                 .param(ReminderTaskServlet.PARAM_NAME_MESSAGE, message)
                 .etaMillis(etaMillis))
         .getName();
