@@ -17,7 +17,6 @@ package com.mizo0203.lilywhite.push_task;
 
 import com.mizo0203.lilywhite.domain.UseCase;
 import com.mizo0203.lilywhite.repo.OfyRepository;
-import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 import javax.servlet.http.HttpServlet;
@@ -26,7 +25,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.logging.Logger;
 
 public class ReminderTaskServlet extends HttpServlet {
-  public static final String PARAM_NAME_SOURCE_ID = "param_name_source_id";
+  public static final String PARAM_NAME_REMINDER_ID = "param_name_reminder_id";
   public static final String PARAM_NAME_MESSAGE = "param_name_message";
 
   @SuppressWarnings("unused")
@@ -35,11 +34,10 @@ public class ReminderTaskServlet extends HttpServlet {
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
     try (UseCase useCase = new UseCase(1512704558L)) {
-      String source_id = req.getParameter(PARAM_NAME_SOURCE_ID);
       String message = req.getParameter(PARAM_NAME_MESSAGE);
       OfyRepository ofyRepository = new OfyRepository();
-      LineTalkRoomConfig config = ofyRepository.loadLineTalkRoomConfig(source_id);
-      Reminder reminder = ofyRepository.loadReminder(config.getEditingReminderId());
+      Reminder reminder =
+          ofyRepository.loadReminder(Long.parseLong(req.getParameter(PARAM_NAME_REMINDER_ID)));
       useCase.status(reminder);
       useCase.notify(reminder, message);
     }

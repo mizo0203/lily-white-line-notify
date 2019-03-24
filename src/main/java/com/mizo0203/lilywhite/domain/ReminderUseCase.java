@@ -183,9 +183,9 @@ public class ReminderUseCase implements AutoCloseable {
 
   /* package */ void onLinePostBackNoParam(PostbackEvent event) {
 
-    String data = event.getPostbackContent().getData();
+    String data = getData(event);
     if (ACTION_DATA_REQUEST_REMINDER_CANCELLATION.equals(data)) {
-      onResponseReminderCancellation(event);
+      onResponseReminderCancellation(event, getReminderId(event));
     } else if (ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION.equals(data)) {
       onResponseCompleteAccessToken(event);
     } else if (ACTION_DATA_CANCEL_REMINDER.equals(data)) {
@@ -194,6 +194,24 @@ public class ReminderUseCase implements AutoCloseable {
       onResponseNotCancelReminder(event);
     } else if (ACTION_DATA_CREATE_REMINDER.equals(data)) {
       onResponseReset(event);
+    }
+  }
+
+  private String getData(PostbackEvent event) {
+    String data = event.getPostbackContent().getData();
+    if (data.contains("+")) {
+      return data.substring(0, data.indexOf("+"));
+    } else {
+      return data;
+    }
+  }
+
+  private long getReminderId(PostbackEvent event) {
+    String data = event.getPostbackContent().getData();
+    if (data.contains("+")) {
+      return Long.parseLong(data.substring(data.indexOf("+") + 1));
+    } else {
+      throw new RuntimeException();
     }
   }
 
@@ -224,21 +242,12 @@ public class ReminderUseCase implements AutoCloseable {
     }
   }
 
-  private void onResponseReminderCancellation(PostbackEvent event) {
-    switch (mReminderState) {
-      case NO_REMINDER_MESSAGE:
-      case NO_ACCESS_TOKEN:
-      case HAS_ACCESS_TOKEN:
-        // NOP
-        break;
-      case REMINDER_ENQUEUED:
-        setCancellationConfirm(true);
-        replyReminderCancellationConfirmMessage(event.getReplyToken());
-        break;
-      case REMINDER_CANCELLATION_CONFIRM:
-      default:
-        // NOP
-        break;
+  private void onResponseReminderCancellation(PostbackEvent event, long reminderId) {
+    deleteReminder();
+    mConfig.setEditingReminderId(reminderId);
+    try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
+      reminderUseCase.setCancellationConfirm(true);
+      reminderUseCase.replyReminderCancellationConfirmMessage(event.getReplyToken());
     }
   }
 
@@ -271,6 +280,7 @@ public class ReminderUseCase implements AutoCloseable {
       case REMINDER_CANCELLATION_CONFIRM:
         setCancellationConfirm(false);
         replyNotCanceledReminderMessage(event.getReplyToken());
+        mConfig.setEditingReminderId(null);
         break;
       default:
         // NOP
@@ -281,7 +291,7 @@ public class ReminderUseCase implements AutoCloseable {
   private void onResponseReset(PostbackEvent event) {
     switch (mReminderState) {
       case NO_REMINDER_MESSAGE:
-        replyMessageToRequestReminderMessage(mConfig.getSourceId(), event.getReplyToken());
+        replyMessageToRequestReminderMessage(event.getReplyToken());
         break;
       case NO_ACCESS_TOKEN:
       case HAS_ACCESS_TOKEN:
@@ -311,7 +321,7 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private void enqueueReminderTask(Date date) {
-    mRepository.enqueueReminderTask(mConfig, mReminder, date.getTime());
+    mRepository.enqueueReminderTask(mReminder, date.getTime());
   }
 
   private void replyReminderConfirmMessage(String replyToken, Date date) {
@@ -343,7 +353,9 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private Action createPostbackActionToRequestReminderCancellation() {
-    return new PostbackAction("キャンセル", ACTION_DATA_REQUEST_REMINDER_CANCELLATION);
+    return new PostbackAction(
+        "キャンセル",
+        ACTION_DATA_REQUEST_REMINDER_CANCELLATION + "+" + String.valueOf(mReminder.getId()));
   }
 
   private void replyReminderCancellationConfirmMessage(String replyToken) {
@@ -386,7 +398,7 @@ public class ReminderUseCase implements AutoCloseable {
     mReminder.setCancellationConfirm(cancellationConfirm);
   }
 
-  private void replyMessageToRequestReminderMessage(String senderId, String replyToken) {
+  private void replyMessageToRequestReminderMessage(String replyToken) {
     mRepository.replyMessage(
         replyToken, new TextMessage("リマインダーをセットしますよー\nメッセージを入力してくださいー\n例) 春ですよー"));
   }

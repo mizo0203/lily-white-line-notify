@@ -9,7 +9,6 @@ import com.mizo0203.lilywhite.repo.line.data.ResponseApiRateLimit;
 import com.mizo0203.lilywhite.repo.line.data.ResponseStatusData;
 import com.mizo0203.lilywhite.repo.objectify.entity.Channel;
 import com.mizo0203.lilywhite.repo.objectify.entity.KeyEntity;
-import com.mizo0203.lilywhite.repo.objectify.entity.LineTalkRoomConfig;
 import com.mizo0203.lilywhite.repo.objectify.entity.Reminder;
 
 import javax.annotation.Nonnull;
@@ -144,10 +143,10 @@ public class Repository {
     mOfyRepository.deleteKeyEntity(key);
   }
 
-  public void enqueueReminderTask(LineTalkRoomConfig config, Reminder reminder, long etaMillis) {
+  public void enqueueReminderTask(Reminder reminder, long etaMillis) {
     String taskName =
         mPushQueueRepository.enqueueReminderTask(
-            config.getSourceId(), etaMillis, reminder.getReminderMessage());
+            reminder.getId(), etaMillis, reminder.getReminderMessage());
     LOG.info("enqueueReminderTask taskName: " + taskName);
     reminder.setReminderEnqueuedTaskName(taskName);
   }
