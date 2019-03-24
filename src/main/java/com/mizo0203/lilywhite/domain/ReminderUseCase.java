@@ -34,7 +34,7 @@ public class ReminderUseCase implements AutoCloseable {
       "ACTION_DATA_REQUEST_ACCESS_TOKEN_COMPLETION";
   private static final String ACTION_DATA_CANCEL_REMINDER = "ACTION_DATA_CANCEL_REMINDER";
   private static final String ACTION_DATA_NOT_CANCEL_REMINDER = "ACTION_DATA_NOT_CANCEL_REMINDER";
-  private static final String ACTION_DATA_REQUEST_RESET = "ACTION_DATA_REQUEST_RESET";
+  private static final String ACTION_DATA_CREATE_REMINDER = "ACTION_DATA_CREATE_REMINDER";
 
   @SuppressWarnings("unused")
   private static final Logger LOG = Logger.getLogger(ReminderUseCase.class.getName());
@@ -192,7 +192,7 @@ public class ReminderUseCase implements AutoCloseable {
       onResponseCancelReminder(event);
     } else if (ACTION_DATA_NOT_CANCEL_REMINDER.equals(data)) {
       onResponseNotCancelReminder(event);
-    } else if (ACTION_DATA_REQUEST_RESET.equals(data)) {
+    } else if (ACTION_DATA_CREATE_REMINDER.equals(data)) {
       onResponseReset(event);
     }
   }
@@ -214,6 +214,7 @@ public class ReminderUseCase implements AutoCloseable {
         enqueueReminderTask(date);
         replyReminderConfirmMessage(event.getReplyToken(), date);
         notifyReminderConfirmMessage(date);
+        mConfig.setEditingReminderId(null);
         break;
       case REMINDER_ENQUEUED:
       case REMINDER_CANCELLATION_CONFIRM:
@@ -298,11 +299,15 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private Template createTemplateToReset() {
-    return new ButtonsTemplate(null, null, "キャンセルしましたー", createPostBackActionsToRequestReset());
+    return new ButtonsTemplate(
+        null,
+        null,
+        "キャンセルしましたー",
+        Collections.singletonList(createPostbackActionToCreateReminder()));
   }
 
-  private List<Action> createPostBackActionsToRequestReset() {
-    return Collections.singletonList(new PostbackAction("リセット", ACTION_DATA_REQUEST_RESET));
+  private Action createPostbackActionToCreateReminder() {
+    return new PostbackAction("新しいリマインダーを作成", ACTION_DATA_CREATE_REMINDER);
   }
 
   private void enqueueReminderTask(Date date) {
@@ -330,12 +335,11 @@ public class ReminderUseCase implements AutoCloseable {
   private Template createButtonsTemplateToConfirmReminder(String text) {
     return ButtonsTemplate.builder()
         .text(text)
-        .actions(createPostbackActionsToRequestReminderCancellation())
+        .actions(
+            Arrays.asList(
+                createPostbackActionToRequestReminderCancellation(),
+                createPostbackActionToCreateReminder()))
         .build();
-  }
-
-  private List<Action> createPostbackActionsToRequestReminderCancellation() {
-    return Collections.singletonList(createPostbackActionToRequestReminderCancellation());
   }
 
   private Action createPostbackActionToRequestReminderCancellation() {
