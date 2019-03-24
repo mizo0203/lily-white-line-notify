@@ -38,8 +38,9 @@ public class ReminderTaskServlet extends HttpServlet {
       OfyRepository ofyRepository = new OfyRepository();
       Reminder reminder =
           ofyRepository.loadReminder(Long.parseLong(req.getParameter(PARAM_NAME_REMINDER_ID)));
-      useCase.status(reminder);
       useCase.notify(reminder, message);
+      useCase.revoke(reminder.getAccessToken());
+      ofyRepository.deleteReminder(reminder.getId());
     }
   }
 }

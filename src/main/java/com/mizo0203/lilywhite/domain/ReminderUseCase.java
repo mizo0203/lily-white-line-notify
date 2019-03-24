@@ -243,6 +243,10 @@ public class ReminderUseCase implements AutoCloseable {
   }
 
   private void onResponseReminderCancellation(PostbackEvent event, long reminderId) {
+    if (mOfyRepository.loadReminder(reminderId) == null) {
+      mRepository.replyMessage(event.getReplyToken(), new TextMessage("リマインダーを送信済みです"));
+      return;
+    }
     deleteReminder();
     mConfig.setEditingReminderId(reminderId);
     try (ReminderUseCase reminderUseCase = new ReminderUseCase(mRepository, mConfig)) {
