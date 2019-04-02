@@ -83,4 +83,4 @@ Bot とのトークでリマインダーをセットします。
 * 「リリーホワイト」は上海アリス幻樂団のキャラクターです。
 * LINE は LINE 株式会社の商標または登録商標です。
 
-© 2019 [Satoki Mizoguchi](https://github.com/mizo0203), Licensed under the [Apache License, Version 2.0](https://github.com/mizo0203/mizo-detector/blob/master/LICENSE).
+© 2019 [Satoki Mizoguchi](https://github.com/mizo0203), Licensed under the [Apache License, Version 2.0](https://github.com/mizo0203/lily-white-line-notify/blob/master/LICENSE).
