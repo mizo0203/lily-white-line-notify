@@ -53,13 +53,17 @@ public class ReminderUseCase implements AutoCloseable {
     mRepository = repository;
     mOfyRepository = new OfyRepository();
     mConfig = config;
-    if (config.getEditingReminderId() == null) {
-      mReminder = mOfyRepository.factoryReminder();
-      config.setEditingReminderId(mReminder.getId());
-    } else {
-      mReminder = mOfyRepository.loadReminder(config.getEditingReminderId());
+    Long editingReminderId = config.getEditingReminderId();
+    Reminder reminder = null;
+    if (editingReminderId != null) {
+      reminder = mOfyRepository.loadReminder(editingReminderId);
     }
-    mReminderState = getReminderState(mReminder);
+    if (reminder == null) {
+      reminder = mOfyRepository.factoryReminder();
+      config.setEditingReminderId(reminder.getId());
+    }
+    mReminder = reminder;
+    mReminderState = getReminderState(reminder);
     mTranslator = new Translator();
   }
 
